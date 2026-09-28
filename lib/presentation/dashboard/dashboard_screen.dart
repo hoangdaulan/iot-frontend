@@ -4,15 +4,22 @@ import 'package:gp1/presentation/dashboard/cubit/dashboard_cubit.dart';
 import 'package:gp1/presentation/dashboard/widgets/device_control_card.dart';
 import 'package:gp1/presentation/dashboard/widgets/sensor_chart.dart';
 import 'package:gp1/presentation/dashboard/widgets/sensor_stat_card.dart';
+import 'package:gp1/presentation/widgets/my_app_bar.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => DashboardCubit()..loadDashboard(),
-      child: const DashboardView(),
+    return Scaffold(
+      appBar: MyAppBar(
+        title: const Text('Dashboard'),
+        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.refresh))],
+      ),
+      body: BlocProvider(
+        create: (_) => DashboardCubit()..loadDashboard(),
+        child: const DashboardView(),
+      ),
     );
   }
 }
@@ -119,7 +126,8 @@ class DashboardView extends StatelessWidget {
                         icon: Icons.thermostat,
                         color: const Color(0xFFFF6063),
                         isOn: state.temperatureSensorOn,
-                        onToggle: (value) => context.read<DashboardCubit>().toggleDevice('temperature'),
+                        onToggle: (value) =>
+                            context.read<DashboardCubit>().toggleDevice('temperature'),
                       ),
                       DeviceControlCard(
                         title: 'Humidity Sensor',
@@ -127,7 +135,8 @@ class DashboardView extends StatelessWidget {
                         icon: Icons.water_drop,
                         color: const Color(0xFF33A0FF),
                         isOn: state.humiditySensorOn,
-                        onToggle: (value) => context.read<DashboardCubit>().toggleDevice('humidity'),
+                        onToggle: (value) =>
+                            context.read<DashboardCubit>().toggleDevice('humidity'),
                       ),
                       DeviceControlCard(
                         title: 'Light Sensor',
@@ -186,21 +195,17 @@ class _ResponsiveGrid extends StatelessWidget {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children
-            .map((child) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: child,
-                  ),
-                ))
+            .map(
+              (child) => Expanded(
+                child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: child),
+              ),
+            )
             .toList(),
       );
     }
     return Column(
       children: children
-          .map((child) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: child,
-              ))
+          .map((child) => Padding(padding: const EdgeInsets.only(bottom: 12), child: child))
           .toList(),
     );
   }
