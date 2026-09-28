@@ -1,0 +1,1 @@
+enum AppDropdownType { single, multiple }

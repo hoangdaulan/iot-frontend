@@ -1,0 +1,16 @@
+default_platform(:android)
+
+platform :android do
+    desc "Push a new beta build to Google Play"
+    lane :release do
+        sh("flutter build appbundle --release --dart-define-from-file=.env/prod.json")
+
+        upload_to_play_store(
+            track: 'internal',
+            # track: 'alpha',
+            # track: 'beta',
+            # track: 'production',
+            aab: "../build/app/outputs/bundle/release/app-release.aab",
+        )
+    end
+end

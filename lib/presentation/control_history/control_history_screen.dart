@@ -1,0 +1,215 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/data/models/control_action.dart';
+import 'package:gp1/generated/colors.gen.dart';
+import 'package:gp1/presentation/control_history/cubit/control_history_cubit.dart';
+import 'package:gp1/presentation/widgets/app_info_chip.dart';
+import 'package:gp1/presentation/widgets/table/app_table.dart';
+import 'package:intl/intl.dart';
+
+class ControlHistoryScreen extends StatelessWidget {
+  const ControlHistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => ControlHistoryCubit()..loadHistory(),
+      child: const ControlHistoryView(),
+    );
+  }
+}
+
+class ControlHistoryView extends StatefulWidget {
+  const ControlHistoryView({super.key});
+
+  @override
+  State<ControlHistoryView> createState() => _ControlHistoryViewState();
+}
+
+class _ControlHistoryViewState extends State<ControlHistoryView> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(
+      text: context.read<ControlHistoryCubit>().state.searchQuery,
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<ControlHistoryCubit>();
+    final state = context.watch<ControlHistoryCubit>().state;
+    final timeFormat = DateFormat('dd/MM/yyyy HH:mm:ss');
+
+    return Column(
+      children: [
+        // ── Filter Bar ──
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              // Search input box for time/text
+              SizedBox(
+                width: 280,
+                child: TextFormField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Search time',
+                    hintText: 'VD: 2026/09/11 15:12:11',
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: state.searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              cubit.search('');
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: cubit.search,
+                ),
+              ),
+              // Device type filter
+              SizedBox(
+                width: 180,
+                child: DropdownButtonFormField<String?>(
+                  value: state.selectedDeviceType,
+                  decoration: const InputDecoration(
+                    labelText: 'Device Type',
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All Devices'),
+                    ),
+                    DropdownMenuItem(value: 'Temperature Sensor', child: Text('Temperature')),
+                    DropdownMenuItem(value: 'Humidity Sensor', child: Text('Humidity')),
+                    DropdownMenuItem(value: 'Light Sensor', child: Text('Light')),
+                  ],
+                  onChanged: cubit.filterByDeviceType,
+                ),
+              ),
+              // Action filter (ON/OFF)
+              SizedBox(
+                width: 140,
+                child: DropdownButtonFormField<DeviceAction?>(
+                  value: state.selectedAction,
+                  decoration: const InputDecoration(
+                    labelText: 'Action',
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<DeviceAction?>(value: null, child: Text('All Actions')),
+                    ...DeviceAction.values.map((a) => DropdownMenuItem(
+                          value: a,
+                          child: Text(a.label),
+                        )),
+                  ],
+                  onChanged: cubit.filterByAction,
+                ),
+              ),
+              // Status filter
+              SizedBox(
+                width: 140,
+                child: DropdownButtonFormField<ActionStatus?>(
+                  value: state.selectedStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<ActionStatus?>(value: null, child: Text('All Status')),
+                    ...ActionStatus.values.map((s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(s.label),
+                        )),
+                  ],
+                  onChanged: cubit.filterByStatus,
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  _searchController.clear();
+                  cubit.refresh();
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Refresh'),
+              ),
+            ],
+          ),
+        ),
+        const Divider(),
+        // ── Table ──
+        Expanded(
+          child: AppTable<ControlAction>(
+            pagedList: state.actions,
+            minWidth: 700,
+            columns: [
+              AppTableColumn(
+                headerLabel: 'Device',
+                flex: 2,
+                cellBuilder: (action) => Center(
+                  child: Text(
+                    action.deviceType,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+              AppTableColumn(
+                headerLabel: 'Action',
+                width: 100,
+                cellBuilder: (action) => Center(
+                  child: AppInfoChip(
+                    label: action.action.label,
+                    color: action.action == DeviceAction.on ? ColorName.green : ColorName.orange,
+                  ),
+                ),
+              ),
+              AppTableColumn(
+                headerLabel: 'Status',
+                width: 120,
+                cellBuilder: (action) => Center(
+                  child: AppInfoChip(
+                    label: action.status.label,
+                    icon: action.status == ActionStatus.success
+                        ? Icons.check_circle_outline
+                        : Icons.error_outline,
+                    color: action.status == ActionStatus.success ? ColorName.green : ColorName.red,
+                  ),
+                ),
+              ),
+              AppTableColumn(
+                headerLabel: 'Timestamp',
+                flex: 2,
+                cellBuilder: (action) => Center(
+                  child: Text(
+                    timeFormat.format(action.timestamp),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+            onRefresh: cubit.refresh,
+            onRowsPerPageChanged: cubit.changePageSize,
+            onPageChanged: cubit.goToPage,
+          ),
+        ),
+      ],
+    );
+  }
+}
+

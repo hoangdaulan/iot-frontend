@@ -1,0 +1,17 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "build/**"
+    - "ios/build/**"
+  errors:
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - always_use_package_imports
+    - prefer_const_constructors
+    - unnecessary_breaks
+    - sort_pub_dependencies
+    - use_null_aware_elements

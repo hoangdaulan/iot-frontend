@@ -1,0 +1,19 @@
+swagger_parser:
+  schema_url: http://localhost:8080/swagger/doc.json
+  language: dart
+  output_directory: lib/generated/api
+  default_content_type: "application/json"
+
+  root_client: true
+  root_client_name: ApiClient
+  client_postfix: Client
+  
+  json_serializer: json_serializable
+
+  # field_parsers:
+  #   - apply_to_type: "DateTime"
+  #     parser_name: "DateTimeConverter"
+  #     parser_absolute_path: "package:gp1/core/utils/converters/date_time_converter.dart"
+  #   - apply_to_type: "DateTime?"
+  #     parser_name: "DateTimeConverter"
+  #     parser_absolute_path: "package:gp1/core/utils/converters/date_time_converter.dart"

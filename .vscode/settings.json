@@ -1,0 +1,41 @@
+{
+  "files.exclude": {
+    "**/.fvm": true,
+    "**/.dart_tool": true,
+    "**/.pub": true,
+    "**/.idea": true
+  },
+  "search.exclude": {
+    "**/*.g.dart": true,
+    "**/*.freezed.dart": true
+  },
+  "files.watcherExclude": {
+    "**/.fvm": true,
+    "**/.dart_tool": true,
+    "**/.pub": true,
+    "**/.idea": true,
+    "**/build": true
+  },
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [
+      100
+    ],
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always",
+      "source.fixAll": "always"
+    }
+  },
+  "dart.lineLength": 100,
+  "dart.warnWhenEditingFilesOutsideWorkspace": true,
+  "dart.renameFilesWithClasses": "prompt",
+  "editor.stickyScroll.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.dart": "${capture}.g.dart, ${capture}.freezed.dart, ${capture}.config.dart"
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "dart.flutterSdkPath": ".fvm/versions/3.44.2"
+}

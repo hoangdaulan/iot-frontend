@@ -1,0 +1,14 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to TestFlight"
+  lane :release do
+    sh("flutter build ipa --release --dart-define-from-file=.env/prod.json")
+
+    upload_to_testflight(
+      api_key_path: "./fastlane/#{ENV['ASC_API_KEY_PATH']}",
+      ipa: "../build/ios/ipa/mesgo-gla.ipa",
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end

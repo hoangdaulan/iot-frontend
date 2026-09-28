@@ -1,0 +1,12 @@
+global_options:
+  freezed:
+    runs_before:
+      - json_serializable
+  json_serializable:
+    options:
+      include_if_null: false
+      explicit_to_json: true
+      date_time_utc: true
+    runs_before:
+      - retrofit_generator
+

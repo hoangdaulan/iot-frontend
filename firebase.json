@@ -1,0 +1,31 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "glass-processing",
+                    "appId": "1:316977835386:android:7e763d524bfcd4ede1fac3",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "glass-processing",
+                    "configurations": {
+                        "android": "1:316977835386:android:7e763d524bfcd4ede1fac3",
+                        "ios": "1:316977835386:ios:edcb0dde53d070d9e1fac3",
+                        "web": "1:316977835386:web:5a83144e19aa756ee1fac3"
+                    }
+                }
+            },
+            "ios": {
+                "default": {
+                    "projectId": "glass-processing",
+                    "appId": "1:316977835386:ios:edcb0dde53d070d9e1fac3",
+                    "uploadDebugSymbols": false,
+                    "fileOutput": "ios/Runner/GoogleService-Info.plist"
+                }
+            }
+        }
+    }
+}
