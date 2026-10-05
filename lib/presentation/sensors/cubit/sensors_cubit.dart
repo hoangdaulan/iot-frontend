@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gp1/data/mock/mock_data.dart';
+import 'package:gp1/app/constants/app_constants.dart';
+import 'package:gp1/core/base/result.dart';
+import 'package:gp1/data/models/dto/sensor_history_query.dart';
 import 'package:gp1/data/models/paged_list.dart';
+import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
+import 'package:gp1/data/repositories/sensor_repository.dart';
+import 'package:gp1/presentation/sensors/models/sensor_series.dart';
 import 'package:gp1/presentation/sensors/models/time_precision.dart';
 import 'package:intl/intl.dart';
 
@@ -16,17 +21,9 @@ class SensorsState {
   final double? minValue;
   final double? maxValue;
 
-  final List<SensorReading> temperatureChartReadings;
-  final List<SensorReading> humidityChartReadings;
-  final List<SensorReading> lightChartReadings;
-
-  final double currentTemperature;
-  final double currentHumidity;
-  final double currentLight;
-
-  final double temperatureTrend;
-  final double humidityTrend;
-  final double lightTrend;
+  /// Aggregated readings per sensor type, ignoring the table-only filters.
+  final Map<SensorType, SensorSeries> series;
+  final Failure? failure;
 
   final List<SensorReading> _allReadings;
 
@@ -39,15 +36,8 @@ class SensorsState {
     this.searchQuery = '',
     this.minValue,
     this.maxValue,
-    this.temperatureChartReadings = const [],
-    this.humidityChartReadings = const [],
-    this.lightChartReadings = const [],
-    this.currentTemperature = 0.0,
-    this.currentHumidity = 0.0,
-    this.currentLight = 0.0,
-    this.temperatureTrend = 0.0,
-    this.humidityTrend = 0.0,
-    this.lightTrend = 0.0,
+    this.series = const {},
+    this.failure,
     List<SensorReading> allReadings = const [],
   }) : _allReadings = allReadings;
 
@@ -60,15 +50,8 @@ class SensorsState {
     String? searchQuery,
     double? Function()? minValue,
     double? Function()? maxValue,
-    List<SensorReading>? temperatureChartReadings,
-    List<SensorReading>? humidityChartReadings,
-    List<SensorReading>? lightChartReadings,
-    double? currentTemperature,
-    double? currentHumidity,
-    double? currentLight,
-    double? temperatureTrend,
-    double? humidityTrend,
-    double? lightTrend,
+    Map<SensorType, SensorSeries>? series,
+    Failure? failure,
     List<SensorReading>? allReadings,
   }) {
     return SensorsState(
@@ -80,27 +63,30 @@ class SensorsState {
       searchQuery: searchQuery ?? this.searchQuery,
       minValue: minValue != null ? minValue() : this.minValue,
       maxValue: maxValue != null ? maxValue() : this.maxValue,
-      temperatureChartReadings: temperatureChartReadings ?? this.temperatureChartReadings,
-      humidityChartReadings: humidityChartReadings ?? this.humidityChartReadings,
-      lightChartReadings: lightChartReadings ?? this.lightChartReadings,
-      currentTemperature: currentTemperature ?? this.currentTemperature,
-      currentHumidity: currentHumidity ?? this.currentHumidity,
-      currentLight: currentLight ?? this.currentLight,
-      temperatureTrend: temperatureTrend ?? this.temperatureTrend,
-      humidityTrend: humidityTrend ?? this.humidityTrend,
-      lightTrend: lightTrend ?? this.lightTrend,
+      series: series ?? this.series,
+      failure: failure,
       allReadings: allReadings ?? _allReadings,
     );
   }
 }
 
 class SensorsCubit extends Cubit<SensorsState> {
-  SensorsCubit() : super(const SensorsState());
+  SensorsCubit(this._sensorRepository) : super(const SensorsState());
 
-  void loadSensorData() {
-    final allReadings = MockData.generateSensorHistory();
-    emit(state.copyWith(allReadings: allReadings));
-    _applyFilters(page: 1);
+  final SensorRepository _sensorRepository;
+
+  Future<void> loadSensorData() async {
+    // Filtering, aggregation and paging stay client-side over the most recent window.
+    final result = await _sensorRepository.getSensorHistory(
+      const SensorHistoryQuery(size: AppConstants.historyFetchSize),
+    );
+    switch (result) {
+      case Success(data: final response):
+        emit(state.copyWith(allReadings: response.toReadings()));
+        _applyFilters(page: 1);
+      case Failure():
+        emit(state.copyWith(failure: result));
+    }
   }
 
   void search(String query) {
@@ -139,14 +125,16 @@ class SensorsCubit extends Cubit<SensorsState> {
   }
 
   void refresh() {
-    emit(state.copyWith(
-      searchQuery: '',
-      minValue: () => null,
-      maxValue: () => null,
-      selectedType: () => null,
-      startTime: () => null,
-      endTime: () => null,
-    ));
+    emit(
+      state.copyWith(
+        searchQuery: '',
+        minValue: () => null,
+        maxValue: () => null,
+        selectedType: () => null,
+        startTime: () => null,
+        endTime: () => null,
+      ),
+    );
     _applyFilters(page: 1);
   }
 
@@ -181,9 +169,11 @@ class SensorsCubit extends Cubit<SensorsState> {
       final averageValue =
           groupReadings.fold<double>(0.0, (sum, r) => sum + r.value) / groupReadings.length;
 
+      // An aggregated row is identified by the first reading of its bucket.
       allAggregatedReadings.add(
         SensorReading(
-          id: 'sr_agg_$key',
+          id: first.id,
+          sensorId: first.sensorId,
           type: first.type,
           value: double.parse(averageValue.toStringAsFixed(1)),
           timestamp: truncatedTimestamp,
@@ -192,32 +182,7 @@ class SensorsCubit extends Cubit<SensorsState> {
     });
 
     // 3. Separate chart data per sensor type (sorted chronologically: oldest -> newest)
-    List<SensorReading> getSortedChartReadings(SensorType type) {
-      final list = allAggregatedReadings.where((r) => r.type == type).toList();
-      list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      return list;
-    }
-
-    final tempChartReadings = getSortedChartReadings(SensorType.temperature);
-    final humChartReadings = getSortedChartReadings(SensorType.humidity);
-    final lightChartReadings = getSortedChartReadings(SensorType.light);
-
-    // Calculate current values and trends per type
-    double getLatestValue(List<SensorReading> list) =>
-        list.isNotEmpty ? list.last.value : 0.0;
-
-    double getTrendValue(List<SensorReading> list) => list.length >= 2
-        ? double.parse((list.last.value - list[list.length - 2].value).toStringAsFixed(1))
-        : 0.0;
-
-    final currentTemp = getLatestValue(tempChartReadings);
-    final tempTrend = getTrendValue(tempChartReadings);
-
-    final currentHum = getLatestValue(humChartReadings);
-    final humTrend = getTrendValue(humChartReadings);
-
-    final currentLight = getLatestValue(lightChartReadings);
-    final lightTrend = getTrendValue(lightChartReadings);
+    final series = SensorSeries.group(allAggregatedReadings);
 
     // 4. Filter for table display (apply selectedType, minValue, maxValue, searchQuery)
     var tableReadings = allAggregatedReadings.toList();
@@ -269,15 +234,19 @@ class SensorsCubit extends Cubit<SensorsState> {
       }).toList();
     }
 
-    // Sort table newest first
-    tableReadings.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    // Sort table newest first; same-time rows in sensor type order, independent of API order
+    tableReadings.sort((a, b) {
+      final byTime = b.timestamp.compareTo(a.timestamp);
+      return byTime != 0 ? byTime : a.type.index.compareTo(b.type.index);
+    });
 
     // 5. Pagination
     final currentPage = page ?? state.readings.page;
     final currentPageSize = pageSize ?? state.readings.pageSize;
-    final totalPages = (tableReadings.length / currentPageSize)
-        .ceil()
-        .clamp(1, double.maxFinite.toInt());
+    final totalPages = (tableReadings.length / currentPageSize).ceil().clamp(
+      1,
+      double.maxFinite.toInt(),
+    );
 
     final startIndex = (currentPage - 1) * currentPageSize;
     final endIndex = (startIndex + currentPageSize).clamp(0, tableReadings.length);
@@ -285,23 +254,17 @@ class SensorsCubit extends Cubit<SensorsState> {
         ? tableReadings.sublist(startIndex, endIndex)
         : <SensorReading>[];
 
-    emit(state.copyWith(
-      readings: PagedList(
-        data: pageData,
-        page: currentPage,
-        pageSize: currentPageSize,
-        pageCounts: totalPages,
+    emit(
+      state.copyWith(
+        readings: PagedList(
+          data: pageData,
+          page: currentPage,
+          pageSize: currentPageSize,
+          pageCounts: totalPages,
+        ),
+        series: series,
       ),
-      temperatureChartReadings: tempChartReadings,
-      humidityChartReadings: humChartReadings,
-      lightChartReadings: lightChartReadings,
-      currentTemperature: currentTemp,
-      temperatureTrend: tempTrend,
-      currentHumidity: currentHum,
-      humidityTrend: humTrend,
-      currentLight: currentLight,
-      lightTrend: lightTrend,
-    ));
+    );
   }
 
   DateTimeRange? _parseDateTimeQuery(String query) {
@@ -321,7 +284,14 @@ class SensorsCubit extends Cubit<SensorsState> {
       final minute = match.group(5) != null ? int.parse(match.group(5)!) : null;
       final second = match.group(6) != null ? int.parse(match.group(6)!) : null;
 
-      return _buildRange(year: year, month: month, day: day, hour: hour, minute: minute, second: second);
+      return _buildRange(
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+      );
     }
 
     // 2. dd/MM/yyyy HH:mm:ss or dd-MM-yyyy HH:mm:ss or dd/MM/yyyy
@@ -337,7 +307,14 @@ class SensorsCubit extends Cubit<SensorsState> {
       final minute = match.group(5) != null ? int.parse(match.group(5)!) : null;
       final second = match.group(6) != null ? int.parse(match.group(6)!) : null;
 
-      return _buildRange(year: year, month: month, day: day, hour: hour, minute: minute, second: second);
+      return _buildRange(
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+      );
     }
 
     return null;
@@ -388,4 +365,3 @@ class SensorsCubit extends Cubit<SensorsState> {
     return DateTimeRange(start: start, end: end);
   }
 }
-

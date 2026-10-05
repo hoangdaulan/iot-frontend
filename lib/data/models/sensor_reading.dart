@@ -1,26 +1,23 @@
-enum SensorType {
-  temperature('Temperature', '°C'),
-  humidity('Humidity', '%'),
-  light('Light', 'lux');
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:gp1/data/models/sensor.dart';
 
-  final String label;
-  final String unit;
+part 'sensor_reading.freezed.dart';
 
-  const SensorType(this.label, this.unit);
-}
+/// Frontend read model for one measurement together with its sensor type, which the tables,
+/// filters and charts group by. Built from the sensor-data DTOs (see `SensorHistoryResponse`).
+@freezed
+abstract class SensorReading with _$SensorReading {
+  const SensorReading._();
 
-class SensorReading {
-  final String id;
-  final SensorType type;
-  final double value;
-  final DateTime timestamp;
+  const factory SensorReading({
+    required int id,
+    required SensorType type,
+    required double value,
+    required DateTime timestamp,
 
-  const SensorReading({
-    required this.id,
-    required this.type,
-    required this.value,
-    required this.timestamp,
-  });
+    /// Not included in the sensor-data API responses.
+    int? sensorId,
+  }) = _SensorReading;
 
   String get unit => type.unit;
 }

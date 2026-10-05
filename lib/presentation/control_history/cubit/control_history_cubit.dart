@@ -1,57 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gp1/data/mock/mock_data.dart';
-import 'package:gp1/data/models/control_action.dart';
+import 'package:gp1/app/constants/app_constants.dart';
+import 'package:gp1/core/base/result.dart';
+import 'package:gp1/data/models/device_action.dart';
+import 'package:gp1/data/models/device_action_history_item.dart';
+import 'package:gp1/data/models/dto/device_history_query.dart';
 import 'package:gp1/data/models/paged_list.dart';
+import 'package:gp1/data/repositories/device_repository.dart';
 import 'package:intl/intl.dart';
 
 class ControlHistoryState {
-  final PagedList<ControlAction> actions;
-  final String? selectedDeviceType;
-  final DeviceAction? selectedAction;
-  final ActionStatus? selectedStatus;
+  final PagedList<DeviceActionHistoryItem> actions;
+  final DeviceActionType? selectedAction;
+  final DeviceActionResult? selectedResult;
   final DateTimeRange? dateRange;
   final String searchQuery;
-  final List<ControlAction> _allActions;
+  final Failure? failure;
+  final List<DeviceActionHistoryItem> _allActions;
 
   const ControlHistoryState({
-    this.actions = const PagedList<ControlAction>(),
-    this.selectedDeviceType,
+    this.actions = const PagedList<DeviceActionHistoryItem>(),
     this.selectedAction,
-    this.selectedStatus,
+    this.selectedResult,
     this.dateRange,
     this.searchQuery = '',
-    List<ControlAction> allActions = const [],
+    this.failure,
+    List<DeviceActionHistoryItem> allActions = const [],
   }) : _allActions = allActions;
 
   ControlHistoryState copyWith({
-    PagedList<ControlAction>? actions,
-    String? Function()? selectedDeviceType,
-    DeviceAction? Function()? selectedAction,
-    ActionStatus? Function()? selectedStatus,
+    PagedList<DeviceActionHistoryItem>? actions,
+    DeviceActionType? Function()? selectedAction,
+    DeviceActionResult? Function()? selectedResult,
     DateTimeRange? Function()? dateRange,
     String? searchQuery,
-    List<ControlAction>? allActions,
+    Failure? failure,
+    List<DeviceActionHistoryItem>? allActions,
   }) {
     return ControlHistoryState(
       actions: actions ?? this.actions,
-      selectedDeviceType: selectedDeviceType != null ? selectedDeviceType() : this.selectedDeviceType,
       selectedAction: selectedAction != null ? selectedAction() : this.selectedAction,
-      selectedStatus: selectedStatus != null ? selectedStatus() : this.selectedStatus,
+      selectedResult: selectedResult != null ? selectedResult() : this.selectedResult,
       dateRange: dateRange != null ? dateRange() : this.dateRange,
       searchQuery: searchQuery ?? this.searchQuery,
+      failure: failure,
       allActions: allActions ?? _allActions,
     );
   }
 }
 
 class ControlHistoryCubit extends Cubit<ControlHistoryState> {
-  ControlHistoryCubit() : super(const ControlHistoryState());
+  ControlHistoryCubit(this._deviceRepository) : super(const ControlHistoryState());
 
-  void loadHistory() {
-    final allActions = MockData.generateControlHistory(count: 200);
-    emit(state.copyWith(allActions: allActions));
-    _applyFilters(page: 1);
+  final DeviceRepository _deviceRepository;
+
+  Future<void> loadHistory() async {
+    // Filtering, search and paging stay client-side over the most recent window.
+    final result = await _deviceRepository.getControlHistory(
+      const DeviceHistoryQuery(size: AppConstants.historyFetchSize),
+    );
+    switch (result) {
+      case Success(data: final page):
+        emit(state.copyWith(allActions: page.content));
+        _applyFilters(page: 1);
+      case Failure():
+        emit(state.copyWith(failure: result));
+    }
   }
 
   void search(String query) {
@@ -59,18 +73,13 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
     _applyFilters(page: 1);
   }
 
-  void filterByDeviceType(String? type) {
-    emit(state.copyWith(selectedDeviceType: () => type));
-    _applyFilters(page: 1);
-  }
-
-  void filterByAction(DeviceAction? action) {
+  void filterByAction(DeviceActionType? action) {
     emit(state.copyWith(selectedAction: () => action));
     _applyFilters(page: 1);
   }
 
-  void filterByStatus(ActionStatus? status) {
-    emit(state.copyWith(selectedStatus: () => status));
+  void filterByResult(DeviceActionResult? result) {
+    emit(state.copyWith(selectedResult: () => result));
     _applyFilters(page: 1);
   }
 
@@ -86,16 +95,12 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
   void _applyFilters({int? page, int? pageSize}) {
     var filtered = state._allActions.toList();
 
-    if (state.selectedDeviceType != null) {
-      filtered = filtered.where((a) => a.deviceType == state.selectedDeviceType).toList();
-    }
-
     if (state.selectedAction != null) {
       filtered = filtered.where((a) => a.action == state.selectedAction).toList();
     }
 
-    if (state.selectedStatus != null) {
-      filtered = filtered.where((a) => a.status == state.selectedStatus).toList();
+    if (state.selectedResult != null) {
+      filtered = filtered.where((a) => a.result == state.selectedResult).toList();
     }
 
     if (state.dateRange != null) {
@@ -134,28 +139,35 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
             strYmd.contains(q) ||
             strDmyDash.contains(q) ||
             strYmdDash.contains(q) ||
-            a.deviceType.toLowerCase().contains(q) ||
+            a.deviceName.toLowerCase().contains(q) ||
             a.action.label.toLowerCase().contains(q) ||
-            a.status.label.toLowerCase().contains(q);
+            a.result.label.toLowerCase().contains(q);
       }).toList();
     }
 
     final currentPage = page ?? state.actions.page;
     final currentPageSize = pageSize ?? state.actions.pageSize;
-    final totalPages = (filtered.length / currentPageSize).ceil().clamp(1, double.maxFinite.toInt());
+    final totalPages = (filtered.length / currentPageSize).ceil().clamp(
+      1,
+      double.maxFinite.toInt(),
+    );
 
     final startIndex = (currentPage - 1) * currentPageSize;
     final endIndex = (startIndex + currentPageSize).clamp(0, filtered.length);
-    final pageData = startIndex < filtered.length ? filtered.sublist(startIndex, endIndex) : <ControlAction>[];
+    final pageData = startIndex < filtered.length
+        ? filtered.sublist(startIndex, endIndex)
+        : <DeviceActionHistoryItem>[];
 
-    emit(state.copyWith(
-      actions: PagedList(
-        data: pageData,
-        page: currentPage,
-        pageSize: currentPageSize,
-        pageCounts: totalPages,
+    emit(
+      state.copyWith(
+        actions: PagedList(
+          data: pageData,
+          page: currentPage,
+          pageSize: currentPageSize,
+          pageCounts: totalPages,
+        ),
       ),
-    ));
+    );
   }
 
   DateTimeRange? _parseDateTimeQuery(String query) {
@@ -175,7 +187,14 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
       final minute = match.group(5) != null ? int.parse(match.group(5)!) : null;
       final second = match.group(6) != null ? int.parse(match.group(6)!) : null;
 
-      return _buildRange(year: year, month: month, day: day, hour: hour, minute: minute, second: second);
+      return _buildRange(
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+      );
     }
 
     // 2. dd/MM/yyyy HH:mm:ss or dd-MM-yyyy HH:mm:ss or dd/MM/yyyy
@@ -191,7 +210,14 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
       final minute = match.group(5) != null ? int.parse(match.group(5)!) : null;
       final second = match.group(6) != null ? int.parse(match.group(6)!) : null;
 
-      return _buildRange(year: year, month: month, day: day, hour: hour, minute: minute, second: second);
+      return _buildRange(
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+      );
     }
 
     return null;
@@ -242,4 +268,3 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
     return DateTimeRange(start: start, end: end);
   }
 }
-

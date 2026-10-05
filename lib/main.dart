@@ -21,7 +21,7 @@ void main() async {
     MultiBlocProvider(
       providers: [
         BlocProvider.value(value: authCubit),
-        BlocProvider(create: (_) => getIt<AppCubit>()..load()),
+        BlocProvider(create: (_) => getIt<AppCubit>()),
       ],
       child: const MainApp(),
     ),

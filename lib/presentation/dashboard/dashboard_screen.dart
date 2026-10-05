@@ -1,9 +1,14 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
+import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/presentation/dashboard/cubit/dashboard_cubit.dart';
 import 'package:gp1/presentation/dashboard/widgets/device_control_card.dart';
 import 'package:gp1/presentation/dashboard/widgets/sensor_chart.dart';
 import 'package:gp1/presentation/dashboard/widgets/sensor_stat_card.dart';
+import 'package:gp1/presentation/sensors/models/sensor_series.dart';
 import 'package:gp1/presentation/widgets/my_app_bar.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -11,14 +16,21 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MyAppBar(
-        title: const Text('Dashboard'),
-        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.refresh))],
-      ),
-      body: BlocProvider(
-        create: (_) => DashboardCubit()..loadDashboard(),
-        child: const DashboardView(),
+    return BlocProvider(
+      create: (_) => getIt<DashboardCubit>()..loadDashboard(),
+      child: Builder(
+        builder: (context) => Scaffold(
+          appBar: MyAppBar(
+            title: const Text('Dashboard'),
+            actions: [
+              IconButton(
+                onPressed: context.read<DashboardCubit>().refreshLatestSensorData,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          body: const DashboardView(),
+        ),
       ),
     );
   }
@@ -29,11 +41,16 @@ class DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
+    return BlocConsumer<DashboardCubit, DashboardState>(
+      listener: (context, state) => context.handleFailure(state.failure),
       builder: (context, state) {
         if (state.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
+
+        final temperature = state.series.of(SensorType.temperature);
+        final humidity = state.series.of(SensorType.humidity);
+        final light = state.series.of(SensorType.light);
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -54,27 +71,27 @@ class DashboardView extends StatelessWidget {
                     children: [
                       SensorStatCard(
                         title: 'Temperature',
-                        value: '${state.currentTemperature}',
+                        value: '${temperature.latestValue}',
                         unit: '°C',
                         icon: Icons.thermostat,
                         color: const Color(0xFFFF6063),
-                        trend: state.temperatureTrend,
+                        trend: temperature.trend,
                       ),
                       SensorStatCard(
                         title: 'Humidity',
-                        value: '${state.currentHumidity}',
+                        value: '${humidity.latestValue}',
                         unit: '%',
                         icon: Icons.water_drop,
                         color: const Color(0xFF33A0FF),
-                        trend: state.humidityTrend,
+                        trend: humidity.trend,
                       ),
                       SensorStatCard(
                         title: 'Light',
-                        value: '${state.currentLight}',
+                        value: '${light.latestValue}',
                         unit: 'lux',
                         icon: Icons.light_mode,
                         color: const Color(0xFFFFD633),
-                        trend: state.lightTrend,
+                        trend: light.trend,
                       ),
                     ],
                   ),
@@ -93,19 +110,19 @@ class DashboardView extends StatelessWidget {
                         title: 'Temperature',
                         unit: '°C',
                         color: const Color(0xFFFF6063),
-                        dataPoints: state.temperatureChartData,
+                        dataPoints: _todaySpots(temperature),
                       ),
                       SensorChart(
                         title: 'Humidity',
                         unit: '%',
                         color: const Color(0xFF33A0FF),
-                        dataPoints: state.humidityChartData,
+                        dataPoints: _todaySpots(humidity),
                       ),
                       SensorChart(
                         title: 'Light',
                         unit: 'lux',
                         color: const Color(0xFFFFD633),
-                        dataPoints: state.lightChartData,
+                        dataPoints: _todaySpots(light),
                       ),
                     ],
                   ),
@@ -121,30 +138,12 @@ class DashboardView extends StatelessWidget {
                     isWide: isWide,
                     children: [
                       DeviceControlCard(
-                        title: 'Temperature Sensor',
-                        subtitle: 'Auto-regulate HVAC system',
-                        icon: Icons.thermostat,
-                        color: const Color(0xFFFF6063),
-                        isOn: state.temperatureSensorOn,
-                        onToggle: (value) =>
-                            context.read<DashboardCubit>().toggleDevice('temperature'),
-                      ),
-                      DeviceControlCard(
-                        title: 'Humidity Sensor',
-                        subtitle: 'Control humidifier',
-                        icon: Icons.water_drop,
-                        color: const Color(0xFF33A0FF),
-                        isOn: state.humiditySensorOn,
-                        onToggle: (value) =>
-                            context.read<DashboardCubit>().toggleDevice('humidity'),
-                      ),
-                      DeviceControlCard(
-                        title: 'Light Sensor',
+                        title: 'LED',
                         subtitle: 'Smart lighting control',
                         icon: Icons.light_mode,
                         color: const Color(0xFFFFD633),
-                        isOn: state.lightSensorOn,
-                        onToggle: (value) => context.read<DashboardCubit>().toggleDevice('light'),
+                        isOn: state.isLedOn,
+                        onToggle: context.read<DashboardCubit>().setLedOn,
                       ),
                     ],
                   ),
@@ -157,6 +156,13 @@ class DashboardView extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Chart x-axis is the hour of day (e.g. 13.5 = 13:30).
+  static List<FlSpot> _todaySpots(SensorSeries series) {
+    return series.readings
+        .map((r) => FlSpot(r.timestamp.hour + r.timestamp.minute / 60.0, r.value))
+        .toList();
   }
 }
 

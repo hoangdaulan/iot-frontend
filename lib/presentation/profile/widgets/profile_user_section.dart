@@ -49,19 +49,23 @@ class ProfileUserSection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: ColorName.gray5),
                         ),
-                        child: const Icon(SolarIconsOutline.camera, size: 16, color: ColorName.primary),
+                        child: const Icon(
+                          SolarIconsOutline.camera,
+                          size: 16,
+                          color: ColorName.primary,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  state.username,
+                  state.user?.username ?? '',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  state.email,
+                  state.user?.email ?? '',
                   style: const TextStyle(fontSize: 14, color: ColorName.labelSecondary),
                 ),
                 const SizedBox(height: 8),
@@ -72,7 +76,7 @@ class ProfileUserSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    state.role,
+                    state.user?.role.label ?? '',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

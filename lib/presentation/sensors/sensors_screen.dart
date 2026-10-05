@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
+import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
 import 'package:gp1/generated/colors.gen.dart';
 import 'package:gp1/presentation/sensors/cubit/sensors_cubit.dart';
@@ -13,8 +16,11 @@ class SensorsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SensorsCubit()..loadSensorData(),
-      child: const SensorsView(),
+      create: (_) => getIt<SensorsCubit>()..loadSensorData(),
+      child: BlocListener<SensorsCubit, SensorsState>(
+        listener: (context, state) => context.handleFailure(state.failure),
+        child: const SensorsView(),
+      ),
     );
   }
 }

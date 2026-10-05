@@ -23,8 +23,9 @@ class _AppWidgetState extends State<AppWidget> {
   }
 
   void _handleAuthStateChanges(AuthState state) async {
-    if (state.isAuthenticated) {
-      await context.read<AppCubit>().load();
+    final user = state.user;
+    if (state.isAuthenticated && user != null) {
+      context.read<AppCubit>().setUser(user);
     } else {
       await context.read<AppCubit>().clear();
     }

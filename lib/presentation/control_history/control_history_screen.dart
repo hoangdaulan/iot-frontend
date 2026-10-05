@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gp1/data/models/control_action.dart';
+import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
+import 'package:gp1/data/models/device_action.dart';
+import 'package:gp1/data/models/device_action_history_item.dart';
 import 'package:gp1/generated/colors.gen.dart';
 import 'package:gp1/presentation/control_history/cubit/control_history_cubit.dart';
 import 'package:gp1/presentation/widgets/app_info_chip.dart';
@@ -13,8 +16,11 @@ class ControlHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ControlHistoryCubit()..loadHistory(),
-      child: const ControlHistoryView(),
+      create: (_) => getIt<ControlHistoryCubit>()..loadHistory(),
+      child: BlocListener<ControlHistoryCubit, ControlHistoryState>(
+        listener: (context, state) => context.handleFailure(state.failure),
+        child: const ControlHistoryView(),
+      ),
     );
   }
 }
@@ -82,42 +88,20 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                   onChanged: cubit.search,
                 ),
               ),
-              // Device type filter
-              SizedBox(
-                width: 180,
-                child: DropdownButtonFormField<String?>(
-                  value: state.selectedDeviceType,
-                  decoration: const InputDecoration(
-                    labelText: 'Device Type',
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('All Devices'),
-                    ),
-                    DropdownMenuItem(value: 'Temperature Sensor', child: Text('Temperature')),
-                    DropdownMenuItem(value: 'Humidity Sensor', child: Text('Humidity')),
-                    DropdownMenuItem(value: 'Light Sensor', child: Text('Light')),
-                  ],
-                  onChanged: cubit.filterByDeviceType,
-                ),
-              ),
               // Action filter (ON/OFF)
               SizedBox(
                 width: 140,
-                child: DropdownButtonFormField<DeviceAction?>(
+                child: DropdownButtonFormField<DeviceActionType?>(
                   value: state.selectedAction,
-                  decoration: const InputDecoration(
-                    labelText: 'Action',
-                    isDense: true,
-                  ),
+                  decoration: const InputDecoration(labelText: 'Action', isDense: true),
                   items: [
-                    const DropdownMenuItem<DeviceAction?>(value: null, child: Text('All Actions')),
-                    ...DeviceAction.values.map((a) => DropdownMenuItem(
-                          value: a,
-                          child: Text(a.label),
-                        )),
+                    const DropdownMenuItem<DeviceActionType?>(
+                      value: null,
+                      child: Text('All Actions'),
+                    ),
+                    ...DeviceActionType.values.map(
+                      (a) => DropdownMenuItem(value: a, child: Text(a.label)),
+                    ),
                   ],
                   onChanged: cubit.filterByAction,
                 ),
@@ -125,20 +109,21 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               // Status filter
               SizedBox(
                 width: 140,
-                child: DropdownButtonFormField<ActionStatus?>(
-                  value: state.selectedStatus,
-                  decoration: const InputDecoration(
-                    labelText: 'Status',
-                    isDense: true,
-                  ),
+                child: DropdownButtonFormField<DeviceActionResult?>(
+                  value: state.selectedResult,
+                  decoration: const InputDecoration(labelText: 'Status', isDense: true),
                   items: [
-                    const DropdownMenuItem<ActionStatus?>(value: null, child: Text('All Status')),
-                    ...ActionStatus.values.map((s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s.label),
-                        )),
+                    const DropdownMenuItem<DeviceActionResult?>(
+                      value: null,
+                      child: Text('All Status'),
+                    ),
+                    ...DeviceActionResult.values
+                        .where(
+                          (r) => r != DeviceActionResult.pending && r != DeviceActionResult.unknown,
+                        )
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s.label))),
                   ],
-                  onChanged: cubit.filterByStatus,
+                  onChanged: cubit.filterByResult,
                 ),
               ),
               FilledButton.icon(
@@ -155,7 +140,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
         const Divider(),
         // ── Table ──
         Expanded(
-          child: AppTable<ControlAction>(
+          child: AppTable<DeviceActionHistoryItem>(
             pagedList: state.actions,
             minWidth: 700,
             columns: [
@@ -164,7 +149,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                 flex: 2,
                 cellBuilder: (action) => Center(
                   child: Text(
-                    action.deviceType,
+                    action.deviceName,
                     style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -175,7 +160,9 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                 cellBuilder: (action) => Center(
                   child: AppInfoChip(
                     label: action.action.label,
-                    color: action.action == DeviceAction.on ? ColorName.green : ColorName.orange,
+                    color: action.action == DeviceActionType.turnOn
+                        ? ColorName.green
+                        : ColorName.orange,
                   ),
                 ),
               ),
@@ -184,11 +171,13 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                 width: 120,
                 cellBuilder: (action) => Center(
                   child: AppInfoChip(
-                    label: action.status.label,
-                    icon: action.status == ActionStatus.success
+                    label: action.result.label,
+                    icon: action.result == DeviceActionResult.success
                         ? Icons.check_circle_outline
                         : Icons.error_outline,
-                    color: action.status == ActionStatus.success ? ColorName.green : ColorName.red,
+                    color: action.result == DeviceActionResult.success
+                        ? ColorName.green
+                        : ColorName.red,
                   ),
                 ),
               ),
@@ -212,4 +201,3 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
     );
   }
 }
-

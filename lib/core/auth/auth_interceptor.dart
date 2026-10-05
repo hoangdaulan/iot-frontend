@@ -24,22 +24,27 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // A 401 on a request sent without a token (e.g. wrong login credentials) is not an
+    // expired session.
     if (err.response == null ||
         err.response?.statusCode != tokenExpired ||
-        err.requestOptions.extra[isRefreshTokenRequestKey] == true) {
+        err.requestOptions.extra[isRefreshTokenRequestKey] == true ||
+        err.requestOptions.headers['Authorization'] == null) {
       return handler.next(err);
     }
     final localData = getIt<LocalDataBase>();
-    final remoteData = getIt<RemoteDataBase>();
     final authCubit = getIt<AuthCubitBase>();
     final refreshToken = await localData.getRefreshToken();
     if (refreshToken == null) {
+      // logout() also removes the rejected access token.
       authCubit.logout();
       return handler.reject(err);
     }
 
     try {
-      final (newAccessToken, newRefreshToken) = await remoteData.refreshToken(refreshToken);
+      final (newAccessToken, newRefreshToken) = await getIt<RemoteDataBase>().refreshToken(
+        refreshToken,
+      );
       await localData.saveTokens(newAccessToken, newRefreshToken);
 
       return await _retryRequest(err.requestOptions, handler, newAccessToken);

@@ -29,7 +29,7 @@ class ProfileActionSection extends StatelessWidget {
                     // ── Editable Fields ──
                     const _SectionLabel(label: 'Contact Information'),
                     AppTextField(
-                      value: state.phone,
+                      value: state.user?.phone ?? '',
                       decoration: const InputDecoration(
                         labelText: 'Phone',
                         prefixIcon: Icon(SolarIconsOutline.phone, size: 20),
@@ -38,7 +38,7 @@ class ProfileActionSection extends StatelessWidget {
                     ),
                     const _SectionLabel(label: 'Social Links'),
                     AppTextField(
-                      value: state.github,
+                      value: state.user?.github ?? '',
                       decoration: const InputDecoration(
                         labelText: 'GitHub',
                         prefixIcon: Icon(SolarIconsOutline.globus, size: 20),
@@ -46,7 +46,7 @@ class ProfileActionSection extends StatelessWidget {
                       onChanged: cubit.updateGithub,
                     ),
                     AppTextField(
-                      value: state.figma,
+                      value: state.user?.figma ?? '',
                       decoration: const InputDecoration(
                         labelText: 'Figma',
                         prefixIcon: Icon(SolarIconsOutline.palette, size: 20),

@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gp1/core/base/result.dart';
+import 'package:gp1/data/models/dto/change_password_request.dart';
+import 'package:gp1/data/repositories/auth_repository.dart';
 
 class ChangePasswordState {
   final bool isSuccess;
@@ -34,7 +36,9 @@ class ChangePasswordState {
 }
 
 class ChangePasswordCubit extends Cubit<ChangePasswordState> {
-  ChangePasswordCubit() : super(const ChangePasswordState());
+  ChangePasswordCubit(this._authRepository) : super(const ChangePasswordState());
+
+  final AuthRepository _authRepository;
 
   void updateOldPassword(String oldPassword) {
     emit(state.copyWith(oldPassword: oldPassword));
@@ -49,8 +53,14 @@ class ChangePasswordCubit extends Cubit<ChangePasswordState> {
   }
 
   Future<void> changePassword() async {
-    // Mock change password
-    await Future.delayed(const Duration(milliseconds: 300));
-    emit(state.copyWith(isSuccess: true));
+    final result = await _authRepository.changePassword(
+      ChangePasswordRequest(oldPassword: state.oldPassword, newPassword: state.newPassword),
+    );
+    switch (result) {
+      case Success():
+        emit(state.copyWith(isSuccess: true));
+      case Failure():
+        emit(state.copyWith(failure: result));
+    }
   }
 }
