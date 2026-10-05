@@ -4,6 +4,9 @@ analyzer:
   exclude:
     - "build/**"
     - "ios/build/**"
+    - android/**
+    - ios/**
+    - web/**
   errors:
     invalid_annotation_target: ignore
 
