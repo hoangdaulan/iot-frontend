@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gp1/app/config/app_config.dart';
 import 'package:gp1/generated/colors.gen.dart';
-import 'package:gp1/presentation/app/cubit/app_cubit.dart';
+import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
 import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
+import 'package:gp1/presentation/widgets/app_info_chip.dart';
+import 'package:gp1/presentation/widgets/app_loading.dart';
 import 'package:solar_icons/solar_icons.dart';
 
 class ProfileUserSection extends StatelessWidget {
@@ -13,43 +15,31 @@ class ProfileUserSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AppCubit, AppState>(
+    return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
-        return SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                // Avatar
-                _Avatar(avatar: state.user?.avatar),
-                const SizedBox(height: 16),
-                Text(
-                  state.user?.displayName ?? '',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  state.user?.email ?? '',
-                  style: const TextStyle(fontSize: 14, color: ColorName.labelSecondary),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: ColorName.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    state.user?.role.label ?? '',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: ColorName.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              // Avatar
+              _Avatar(avatar: state.user?.avatar),
+              const SizedBox(height: 16),
+              Text(
+                state.user?.displayName ?? '',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                state.user?.email ?? '',
+                style: const TextStyle(fontSize: 14, color: ColorName.labelSecondary),
+              ),
+              const SizedBox(height: 8),
+              AppInfoChip(
+                size: EAppInfoChipSize.medium,
+                label: state.user?.role.label ?? '',
+                color: ColorName.primary,
+              ),
+            ],
           ),
         );
       },
@@ -79,7 +69,7 @@ class _Avatar extends StatelessWidget {
     final placeholder = Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [ColorName.primary, Color(0xFF33A0FF)],
+          colors: [ColorName.primary, ColorName.blue],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -120,13 +110,7 @@ class _Avatar extends StatelessWidget {
                 color: Colors.black38,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: ColorName.white),
-                ),
-              ),
+              child: const AppLoading(size: 24),
             ),
           ),
         Positioned(

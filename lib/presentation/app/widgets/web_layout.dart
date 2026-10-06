@@ -4,6 +4,7 @@ import 'package:gp1/app/navigation/app_route.dart';
 import 'package:gp1/generated/colors.gen.dart';
 import 'package:gp1/presentation/widgets/app_logo.dart';
 import 'package:gp1/presentation/widgets/developer_attribution.dart';
+import 'package:gp1/presentation/widgets/my_app_bar.dart';
 import 'package:solar_icons/solar_icons.dart';
 
 class WebLayout extends StatelessWidget {
@@ -26,8 +27,21 @@ class WebLayout extends StatelessWidget {
         final isMobile = maxWidth < 640;
         final isDesktop = maxWidth >= 960;
         return Scaffold(
-          appBar: _IoTAppBar(
-            onProfilePressed: () => _onTabTapped(AppRoute.account),
+          appBar: MyAppBar(
+            title: const _Brand(),
+            actions: [
+              IconButton(
+                onPressed: () => _onTabTapped(AppRoute.account),
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: ColorName.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(SolarIconsOutline.user, size: 20, color: ColorName.primary),
+                ),
+              ),
+            ],
           ),
           drawer: isMobile
               ? _MobileDrawer(
@@ -57,52 +71,26 @@ class WebLayout extends StatelessWidget {
   }
 }
 
-class _IoTAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _IoTAppBar({required this.onProfilePressed});
-  final VoidCallback onProfilePressed;
+class _Brand extends StatelessWidget {
+  const _Brand();
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: Row(
-        children: [
-          const AppLogo(width: 32, height: 32),
-          const SizedBox(width: 10),
-          const Text(
-            'IoT Dashboard',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: ColorName.primary,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: onProfilePressed,
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: ColorName.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(SolarIconsOutline.user, size: 20, color: ColorName.primary),
-            ),
-          ),
-        ],
-      ),
-      bottom: const PreferredSize(preferredSize: Size.fromHeight(1), child: Divider(height: 1.0)),
+    return const Row(
+      spacing: 10,
+      children: [
+        AppLogo(width: 32, height: 32),
+        Text(
+          'IoT Dashboard',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: ColorName.primary),
+        ),
+      ],
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(48);
 }
 
 class _MobileDrawer extends StatelessWidget {
-  const _MobileDrawer({
-    required this.selectedItem,
-    required this.onTabTapped,
-  });
+  const _MobileDrawer({required this.selectedItem, required this.onTabTapped});
 
   final AppRoute selectedItem;
   final Function(AppRoute item) onTabTapped;
@@ -239,7 +227,9 @@ class _NavigationSideBarState extends State<_NavigationSideBar> {
                                 children: [
                                   Icon(
                                     isSelected ? item.selectedIcon : item.icon,
-                                    color: isSelected ? ColorName.primary : ColorName.labelSecondary,
+                                    color: isSelected
+                                        ? ColorName.primary
+                                        : ColorName.labelSecondary,
                                     size: 22,
                                   ),
                                   if (isExpanded) ...[
@@ -251,7 +241,9 @@ class _NavigationSideBarState extends State<_NavigationSideBar> {
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
                                           color: isSelected
                                               ? ColorName.primary
                                               : ColorName.labelPrimary,

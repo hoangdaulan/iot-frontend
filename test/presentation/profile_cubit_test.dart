@@ -75,6 +75,25 @@ void main() {
     });
   });
 
+  test('load fetches the profile and gives it to AuthCubit', () async {
+    repository.profileResult = Success(mockUser.copyWith(name: 'Stored Name', swagger: 'http://s'));
+
+    await cubit.load();
+
+    expect(repository.profileCalls, 1);
+    expect(auth.state.user?.name, 'Stored Name');
+    expect(auth.state.user?.swagger, 'http://s');
+  });
+
+  test('a failed load reports the failure', () async {
+    repository.profileResult = const Failure(code: 500, message: 'Internal server error');
+
+    await cubit.load();
+
+    expect(cubit.state.failure?.message, 'Internal server error');
+    expect(auth.state.user, isNull);
+  });
+
   test('save sends the request and gives the saved user to AuthCubit', () async {
     const request = UpdateProfileRequest(name: 'New Name');
 

@@ -54,6 +54,17 @@ class ProfileCubit extends Cubit<ProfileState> {
     );
   }
 
+  /// Fetches the profile from the backend, so the form shows what is stored there.
+  Future<void> load() async {
+    final result = await _authRepository.getProfile();
+    switch (result) {
+      case Success(data: final user):
+        _authCubit.updateUser(user);
+      case Failure():
+        emit(ProfileState(failure: result));
+    }
+  }
+
   Future<void> save(UpdateProfileRequest request) async {
     if (state.isBusy || request.hasNoChanges) return;
 

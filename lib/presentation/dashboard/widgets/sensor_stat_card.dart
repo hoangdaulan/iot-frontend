@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gp1/generated/colors.gen.dart';
+import 'package:gp1/presentation/widgets/app_info_chip.dart';
 
 class SensorStatCard extends StatelessWidget {
   const SensorStatCard({
@@ -50,31 +51,10 @@ class SensorStatCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 24),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: (isPositive ? ColorName.green : ColorName.red).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isPositive ? Icons.trending_up : Icons.trending_down,
-                      size: 14,
-                      color: isPositive ? ColorName.green : ColorName.red,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${isPositive ? '+' : ''}${trend.toStringAsFixed(1)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isPositive ? ColorName.green : ColorName.red,
-                      ),
-                    ),
-                  ],
-                ),
+              AppInfoChip(
+                label: '${isPositive ? '+' : ''}${trend.toStringAsFixed(1)}',
+                icon: isPositive ? Icons.trending_up : Icons.trending_down,
+                color: isPositive ? ColorName.green : ColorName.red,
               ),
             ],
           ),
@@ -105,11 +85,7 @@ class SensorStatCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
                   unit,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: color,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: color),
                 ),
               ),
             ],

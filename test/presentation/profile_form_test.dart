@@ -5,11 +5,9 @@ import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/mock/mock_users.dart';
 import 'package:gp1/data/models/dto/update_profile_request.dart';
 import 'package:gp1/data/models/user.dart';
-import 'package:gp1/presentation/app/cubit/app_cubit.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
 import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
 import 'package:gp1/presentation/profile/widgets/profile_action_section.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../helpers/fakes.dart';
 
@@ -24,26 +22,16 @@ class _Repository extends FakeAuthRepository {
 }
 
 void main() {
-  setUp(() {
-    PackageInfo.setMockInitialValues(
-      appName: 'app',
-      packageName: 'app',
-      version: '1.0.0',
-      buildNumber: '1',
-      buildSignature: '',
-    );
-  });
-
-  Future<(_Repository, AppCubit)> pump(WidgetTester tester) async {
+  Future<(_Repository, AuthCubit)> pump(WidgetTester tester, {bool withUser = true}) async {
     final repository = _Repository();
     final auth = AuthCubit(repository, InMemoryLocalDataBase());
-    final app = AppCubit()..setUser(mockUser);
+    if (withUser) auth.updateUser(mockUser);
     await tester.binding.setSurfaceSize(const Size(800, 1600));
     await tester.pumpWidget(
       MaterialApp(
         home: MultiBlocProvider(
           providers: [
-            BlocProvider.value(value: app),
+            BlocProvider.value(value: auth),
             BlocProvider(create: (_) => ProfileCubit(repository, auth)),
           ],
           child: const Scaffold(body: CustomScrollView(slivers: [ProfileActionSection()])),
@@ -51,7 +39,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    return (repository, app);
+    return (repository, auth);
   }
 
   testWidgets('shows every profile field; the username and email are read only', (tester) async {
@@ -119,5 +107,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.lastUpdate?.toJson(), {'swagger': 'http://new/swagger'});
+  });
+
+  testWidgets('fills the form when the profile arrives after the screen is shown', (tester) async {
+    final (_, auth) = await pump(tester, withUser: false);
+    expect(find.widgetWithText(TextFormField, mockUser.swagger!), findsNothing);
+
+    auth.updateUser(mockUser);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextFormField, mockUser.swagger!), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, mockUser.name!), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, mockUser.username), findsOneWidget);
   });
 }

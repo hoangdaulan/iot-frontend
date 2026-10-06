@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gp1/generated/colors.gen.dart';
+import 'package:gp1/presentation/widgets/app_info_chip.dart';
 
 class DeviceControlCard extends StatelessWidget {
   const DeviceControlCard({
@@ -27,9 +28,7 @@ class DeviceControlCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isOn ? color.withValues(alpha: 0.06) : ColorName.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isOn ? color.withValues(alpha: 0.3) : ColorName.gray5,
-        ),
+        border: Border.all(color: isOn ? color.withValues(alpha: 0.3) : ColorName.gray5),
         boxShadow: [
           BoxShadow(
             color: (isOn ? color : Colors.black).withValues(alpha: 0.06),
@@ -47,11 +46,7 @@ class DeviceControlCard extends StatelessWidget {
               color: isOn ? color.withValues(alpha: 0.15) : ColorName.gray6,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: isOn ? color : ColorName.labelSecondary,
-              size: 24,
-            ),
+            child: Icon(icon, color: isOn ? color : ColorName.labelSecondary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -69,35 +64,17 @@ class DeviceControlCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: ColorName.labelSecondary,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: ColorName.labelSecondary),
                 ),
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: (isOn ? ColorName.green : ColorName.labelSecondary).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    isOn ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isOn ? ColorName.green : ColorName.labelSecondary,
-                    ),
-                  ),
+                AppInfoChip(
+                  label: isOn ? 'Active' : 'Inactive',
+                  color: isOn ? ColorName.green : ColorName.labelSecondary,
                 ),
               ],
             ),
           ),
-          Switch.adaptive(
-            value: isOn,
-            onChanged: onToggle,
-            activeTrackColor: color,
-          ),
+          Switch.adaptive(value: isOn, onChanged: onToggle, activeTrackColor: color),
         ],
       ),
     );

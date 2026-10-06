@@ -206,7 +206,7 @@ class _RegisterTabState extends State<_RegisterTab> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            TextFormField(
+            AppTextField(
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'Full name',
@@ -219,7 +219,7 @@ class _RegisterTabState extends State<_RegisterTab> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            AppTextField(
               controller: _usernameController,
               decoration: const InputDecoration(
                 labelText: 'Username',
@@ -232,7 +232,7 @@ class _RegisterTabState extends State<_RegisterTab> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            AppTextField(
               controller: _emailController,
               decoration: const InputDecoration(
                 labelText: 'Email',
@@ -246,7 +246,7 @@ class _RegisterTabState extends State<_RegisterTab> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            AppTextField(
               controller: _passwordController,
               obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
@@ -266,7 +266,7 @@ class _RegisterTabState extends State<_RegisterTab> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            AppTextField(
               controller: _confirmPasswordController,
               obscureText: !_isPasswordVisible,
               decoration: const InputDecoration(
@@ -294,11 +294,9 @@ class _RegisterTabState extends State<_RegisterTab> {
                     ),
                   );
                   if (registered && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Registration successful! Please login.'),
-                        backgroundColor: Color(0xFF5DD27A),
-                      ),
+                    context.showSnackBar(
+                      'Registration successful! Please login.',
+                      type: SnackBarType.success,
                     );
                   }
                 },

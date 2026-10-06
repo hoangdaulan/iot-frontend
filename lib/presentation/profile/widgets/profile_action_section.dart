@@ -5,11 +5,16 @@ import 'package:gp1/app/navigation/e_app_route.dart';
 import 'package:gp1/data/models/dto/update_profile_request.dart';
 import 'package:gp1/data/models/user.dart';
 import 'package:gp1/generated/colors.gen.dart';
-import 'package:gp1/presentation/app/cubit/app_cubit.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
 import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
+import 'package:gp1/presentation/profile/widgets/profile_user_section.dart';
+import 'package:gp1/presentation/widgets/app_loading.dart';
 import 'package:gp1/presentation/widgets/app_text_field.dart';
 import 'package:solar_icons/solar_icons.dart';
+
+/// Content width at which the profile form switches to two columns, and the widest it grows.
+const _twoColumnBreakpoint = 640.0;
+const _twoColumnMaxWidth = 960.0;
 
 class ProfileActionSection extends StatefulWidget {
   const ProfileActionSection({super.key});
@@ -66,7 +71,7 @@ class _ProfileActionSectionState extends State<ProfileActionSection> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AppCubit, AppState>(
+    return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         final user = state.user;
         // Fill the form from the saved profile, on first show and when it changes.
@@ -86,106 +91,123 @@ class _ProfileActionSectionState extends State<ProfileActionSection> {
         final isSaving = context.select((ProfileCubit cubit) => cubit.state.isSaving);
         final canSave = user != null && !isSaving && !_changes(user).hasNoChanges;
 
+        final header = const ProfileUserSection();
+
+        final account = <Widget>[
+          const _SectionLabel(label: 'Account'),
+          AppTextField(
+            value: user?.username ?? '',
+            readOnly: true,
+            decoration: const InputDecoration(
+              labelText: 'Username',
+              prefixIcon: Icon(SolarIconsOutline.user, size: 20),
+              helperText: 'The username cannot be changed',
+            ),
+          ),
+          AppTextField(
+            value: user?.email ?? '',
+            readOnly: true,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(SolarIconsOutline.letter, size: 20),
+              helperText: 'The email cannot be changed',
+            ),
+          ),
+        ];
+
+        final editable = <Widget>[
+          const _SectionLabel(label: 'Personal Information'),
+          AppTextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Full name',
+              prefixIcon: Icon(SolarIconsOutline.userId, size: 20),
+            ),
+          ),
+          AppTextField(
+            controller: _phone,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Phone',
+              prefixIcon: Icon(SolarIconsOutline.phone, size: 20),
+            ),
+          ),
+          const _SectionLabel(label: 'Links'),
+          AppTextField(
+            controller: _github,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: 'GitHub',
+              prefixIcon: Icon(SolarIconsOutline.globus, size: 20),
+            ),
+          ),
+          AppTextField(
+            controller: _figma,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: 'Figma',
+              prefixIcon: Icon(SolarIconsOutline.palette, size: 20),
+            ),
+          ),
+          AppTextField(
+            controller: _swagger,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: 'Swagger',
+              prefixIcon: Icon(SolarIconsOutline.code, size: 20),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: canSave ? () => context.read<ProfileCubit>().save(_changes(user)) : null,
+            icon: isSaving
+                ? const SizedBox.square(dimension: 16, child: AppLoading(size: 16))
+                : const Icon(SolarIconsOutline.diskette),
+            label: const Text('Save changes'),
+          ),
+        ];
+
+        final actions = <Widget>[
+          const _SectionLabel(label: 'Actions'),
+          OutlinedButton.icon(
+            onPressed: () {
+              context.push('${EAppRoute.account.path}/${EAppRoute.changePassword.path}');
+            },
+            icon: const Icon(SolarIconsOutline.lock),
+            label: const Text('Change Password'),
+          ),
+          const _LogoutButton(),
+        ];
+
+        Widget column(List<Widget> children) =>
+            Column(spacing: 12, crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+
         return SliverToBoxAdapter(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: const BoxConstraints(maxWidth: _twoColumnMaxWidth),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  spacing: 12,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── Account (fixed) ──
-                    const _SectionLabel(label: 'Account'),
-                    AppTextField(
-                      value: user?.username ?? '',
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Username',
-                        prefixIcon: Icon(SolarIconsOutline.user, size: 20),
-                        helperText: 'The username cannot be changed',
+                padding: const EdgeInsets.all(16),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Two columns side by side on wide screens, one stacked column otherwise.
+                    if (constraints.maxWidth >= _twoColumnBreakpoint) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: 32,
+                        children: [
+                          Expanded(child: column([header, ...account, ...actions])),
+                          Expanded(child: column(editable)),
+                        ],
+                      );
+                    }
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: column([header, ...account, ...editable, ...actions]),
                       ),
-                    ),
-                    AppTextField(
-                      value: user?.email ?? '',
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(SolarIconsOutline.letter, size: 20),
-                        helperText: 'The email cannot be changed',
-                      ),
-                    ),
-
-                    // ── Editable fields ──
-                    const _SectionLabel(label: 'Personal Information'),
-                    TextFormField(
-                      controller: _name,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Full name',
-                        prefixIcon: Icon(SolarIconsOutline.userId, size: 20),
-                      ),
-                    ),
-                    TextFormField(
-                      controller: _phone,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone',
-                        prefixIcon: Icon(SolarIconsOutline.phone, size: 20),
-                      ),
-                    ),
-                    const _SectionLabel(label: 'Links'),
-                    TextFormField(
-                      controller: _github,
-                      keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                        labelText: 'GitHub',
-                        prefixIcon: Icon(SolarIconsOutline.globus, size: 20),
-                      ),
-                    ),
-                    TextFormField(
-                      controller: _figma,
-                      keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                        labelText: 'Figma',
-                        prefixIcon: Icon(SolarIconsOutline.palette, size: 20),
-                      ),
-                    ),
-                    TextFormField(
-                      controller: _swagger,
-                      keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                        labelText: 'Swagger',
-                        prefixIcon: Icon(SolarIconsOutline.code, size: 20),
-                      ),
-                    ),
-                    FilledButton.icon(
-                      onPressed: canSave
-                          ? () => context.read<ProfileCubit>().save(_changes(user))
-                          : null,
-                      icon: isSaving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(SolarIconsOutline.diskette),
-                      label: const Text('Save changes'),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // ── Actions ──
-                    const _SectionLabel(label: 'Actions'),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        context.push('${EAppRoute.account.path}/${EAppRoute.changePassword.path}');
-                      },
-                      icon: const Icon(SolarIconsOutline.lock),
-                      label: const Text('Change Password'),
-                    ),
-                    const _LogoutButton(),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),

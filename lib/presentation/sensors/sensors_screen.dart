@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/utils/extensions/date_time_extension.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
@@ -8,8 +10,10 @@ import 'package:gp1/data/models/sensor_search_field.dart';
 import 'package:gp1/generated/colors.gen.dart';
 import 'package:gp1/presentation/sensors/cubit/sensors_cubit.dart';
 import 'package:gp1/presentation/widgets/app_info_chip.dart';
+import 'package:gp1/presentation/widgets/app_text_field.dart';
+import 'package:gp1/presentation/widgets/dropdown/app_dropdown.dart';
+import 'package:gp1/presentation/widgets/models/app_option.dart';
 import 'package:gp1/presentation/widgets/table/app_table.dart';
-import 'package:intl/intl.dart';
 
 class SensorsScreen extends StatelessWidget {
   const SensorsScreen({super.key});
@@ -51,6 +55,10 @@ class _SensorsViewState extends State<SensorsView> {
     super.dispose();
   }
 
+  static final _fieldOptions = [
+    for (final field in SensorSearchField.values) AppOption(field, field.label),
+  ];
+
   void _search() => context.read<SensorsCubit>().search(_field, _queryController.text);
 
   void _clear() {
@@ -63,7 +71,6 @@ class _SensorsViewState extends State<SensorsView> {
   Widget build(BuildContext context) {
     final cubit = context.read<SensorsCubit>();
     final state = context.watch<SensorsCubit>().state;
-    final timeFormat = DateFormat('yyyy/MM/dd HH:mm:ss');
 
     return Column(
       children: [
@@ -78,22 +85,13 @@ class _SensorsViewState extends State<SensorsView> {
               // ── Field ──
               SizedBox(
                 width: 180,
-                child: DropdownButtonFormField<SensorSearchField>(
-                  // Rebuilt on change so Clear can reset the selection.
-                  key: ValueKey(_field),
-                  initialValue: _field,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-                  items: [
-                    for (final field in SensorSearchField.values)
-                      DropdownMenuItem(value: field, child: Text(field.label)),
-                  ],
-                  onChanged: (field) {
-                    setState(() => _field = field ?? SensorSearchField.all);
+                child: AppDropdown<AppOption<SensorSearchField>>.single(
+                  searchType: AppDropdownSearchType.none,
+                  labelText: 'Search by',
+                  items: (_) => _fieldOptions,
+                  selectedItem: AppOption(_field, _field.label),
+                  onChanged: (option) {
+                    setState(() => _field = option?.value ?? SensorSearchField.all);
                     _search();
                   },
                 ),
@@ -101,13 +99,9 @@ class _SensorsViewState extends State<SensorsView> {
               // ── Query ──
               SizedBox(
                 width: 320,
-                child: TextFormField(
+                child: AppTextField(
                   controller: _queryController,
-                  decoration: InputDecoration(
-                    hintText: _field.hint,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
+                  decoration: InputDecoration(hintText: _field.hint),
                   textInputAction: TextInputAction.search,
                   // Dropdown changes filter at once; the text is applied on Enter.
                   onFieldSubmitted: (_) => _search(),
@@ -132,7 +126,7 @@ class _SensorsViewState extends State<SensorsView> {
             columns: [
               AppTableColumn(
                 headerLabel: 'Sensor Type',
-                width: 150,
+                flex: 1,
                 cellBuilder: (reading) => Center(
                   child: AppInfoChip(
                     label: reading.type.label,
@@ -143,7 +137,7 @@ class _SensorsViewState extends State<SensorsView> {
               ),
               AppTableColumn(
                 headerLabel: 'Value',
-                width: 120,
+                flex: 1,
                 cellBuilder: (reading) => Center(
                   child: Text(
                     reading.value.toStringAsFixed(1),
@@ -153,7 +147,7 @@ class _SensorsViewState extends State<SensorsView> {
               ),
               AppTableColumn(
                 headerLabel: 'Unit',
-                width: 80,
+                flex: 1,
                 cellBuilder: (reading) => Center(
                   child: Text(
                     reading.unit,
@@ -166,7 +160,7 @@ class _SensorsViewState extends State<SensorsView> {
                 flex: 1,
                 cellBuilder: (reading) => Center(
                   child: Text(
-                    timeFormat.format(reading.timestamp),
+                    reading.timestamp.toFormatString(pattern: AppConstants.dateTimeFormat),
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),

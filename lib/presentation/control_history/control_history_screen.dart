@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/utils/extensions/date_time_extension.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
 import 'package:gp1/data/models/device_action.dart';
 import 'package:gp1/data/models/device_action_history_item.dart';
 import 'package:gp1/generated/colors.gen.dart';
 import 'package:gp1/presentation/control_history/cubit/control_history_cubit.dart';
 import 'package:gp1/presentation/widgets/app_info_chip.dart';
+import 'package:gp1/presentation/widgets/app_text_field.dart';
+import 'package:gp1/presentation/widgets/dropdown/app_dropdown.dart';
+import 'package:gp1/presentation/widgets/models/app_option.dart';
 import 'package:gp1/presentation/widgets/table/app_table.dart';
-import 'package:intl/intl.dart';
 
 class ControlHistoryScreen extends StatelessWidget {
   const ControlHistoryScreen({super.key});
@@ -49,11 +53,30 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
     super.dispose();
   }
 
+  static final _actionOptions = [
+    const AppOption<DeviceActionType>(null, 'All Actions'),
+    for (final action in DeviceActionType.values) AppOption(action, action.label),
+  ];
+
+  static final _resultOptions = [
+    const AppOption<DeviceActionResult>(null, 'All Status'),
+    for (final result in DeviceActionResult.values)
+      if (result != DeviceActionResult.pending && result != DeviceActionResult.unknown)
+        AppOption(result, result.label),
+  ];
+
+  /// The option standing for [value], or the "All" entry (null value) when nothing is selected.
+  static AppOption<T> _selected<T>(List<AppOption<T>> options, T? value) =>
+      options.firstWhere((option) => option.value == value, orElse: () => options.first);
+
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<ControlHistoryCubit>();
     final state = context.watch<ControlHistoryCubit>().state;
-    final timeFormat = DateFormat('dd/MM/yyyy HH:mm:ss');
+    final deviceOptions = [
+      const AppOption<int>(null, 'All Devices'),
+      for (final device in state.devices) AppOption(device.id, device.name),
+    ];
 
     return Column(
       children: [
@@ -68,29 +91,22 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               // Device filter, from the devices table
               SizedBox(
                 width: 160,
-                child: DropdownButtonFormField<int?>(
-                  // Rebuilt when the options or selection change.
-                  key: ValueKey((state.devices.length, state.selectedDeviceId)),
-                  initialValue: state.selectedDeviceId,
-                  decoration: const InputDecoration(labelText: 'Device', isDense: true),
-                  items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('All Devices')),
-                    ...state.devices.map(
-                      (d) => DropdownMenuItem<int?>(value: d.id, child: Text(d.name)),
-                    ),
-                  ],
-                  onChanged: cubit.filterByDevice,
+                child: AppDropdown<AppOption<int>>.single(
+                  searchType: AppDropdownSearchType.none,
+                  labelText: 'Device',
+                  items: (_) => deviceOptions,
+                  selectedItem: _selected(deviceOptions, state.selectedDeviceId),
+                  onChanged: (option) => cubit.filterByDevice(option?.value),
                 ),
               ),
               // Search by device name or time; applied on Enter or the search icon
               SizedBox(
                 width: 280,
-                child: TextFormField(
+                child: AppTextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     labelText: 'Search time',
                     hintText: 'yyyy/MM/dd HH:mm:ss, e.g. 2026/10/06 11',
-                    isDense: true,
                     prefixIcon: IconButton(
                       icon: const Icon(Icons.search, size: 20),
                       onPressed: () => cubit.search(_searchController.text),
@@ -112,42 +128,23 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               // Action filter (ON/OFF)
               SizedBox(
                 width: 140,
-                child: DropdownButtonFormField<DeviceActionType?>(
-                  // Rebuilt on change so Clear filter can reset the selection.
-                  key: ValueKey(state.selectedAction),
-                  initialValue: state.selectedAction,
-                  decoration: const InputDecoration(labelText: 'Action', isDense: true),
-                  items: [
-                    const DropdownMenuItem<DeviceActionType?>(
-                      value: null,
-                      child: Text('All Actions'),
-                    ),
-                    ...DeviceActionType.values.map(
-                      (a) => DropdownMenuItem(value: a, child: Text(a.label)),
-                    ),
-                  ],
-                  onChanged: cubit.filterByAction,
+                child: AppDropdown<AppOption<DeviceActionType>>.single(
+                  searchType: AppDropdownSearchType.none,
+                  labelText: 'Action',
+                  items: (_) => _actionOptions,
+                  selectedItem: _selected(_actionOptions, state.selectedAction),
+                  onChanged: (option) => cubit.filterByAction(option?.value),
                 ),
               ),
               // Status filter
               SizedBox(
                 width: 140,
-                child: DropdownButtonFormField<DeviceActionResult?>(
-                  key: ValueKey(state.selectedResult),
-                  initialValue: state.selectedResult,
-                  decoration: const InputDecoration(labelText: 'Status', isDense: true),
-                  items: [
-                    const DropdownMenuItem<DeviceActionResult?>(
-                      value: null,
-                      child: Text('All Status'),
-                    ),
-                    ...DeviceActionResult.values
-                        .where(
-                          (r) => r != DeviceActionResult.pending && r != DeviceActionResult.unknown,
-                        )
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s.label))),
-                  ],
-                  onChanged: cubit.filterByResult,
+                child: AppDropdown<AppOption<DeviceActionResult>>.single(
+                  searchType: AppDropdownSearchType.none,
+                  labelText: 'Status',
+                  items: (_) => _resultOptions,
+                  selectedItem: _selected(_resultOptions, state.selectedResult),
+                  onChanged: (option) => cubit.filterByResult(option?.value),
                 ),
               ),
               OutlinedButton.icon(
@@ -170,7 +167,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
             columns: [
               AppTableColumn(
                 headerLabel: 'Device',
-                flex: 2,
+                flex: 1,
                 cellBuilder: (action) => Center(
                   child: Text(
                     action.deviceName,
@@ -180,7 +177,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               ),
               AppTableColumn(
                 headerLabel: 'Action',
-                width: 100,
+                flex: 1,
                 cellBuilder: (action) => Center(
                   child: AppInfoChip(
                     label: action.action.label,
@@ -192,7 +189,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               ),
               AppTableColumn(
                 headerLabel: 'Status',
-                width: 120,
+                flex: 1,
                 cellBuilder: (action) => Center(
                   child: AppInfoChip(
                     label: action.result.label,
@@ -207,10 +204,10 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               ),
               AppTableColumn(
                 headerLabel: 'Timestamp',
-                flex: 2,
+                flex: 1,
                 cellBuilder: (action) => Center(
                   child: Text(
-                    timeFormat.format(action.timestamp),
+                    action.timestamp.toFormatString(pattern: AppConstants.dateTimeFormat),
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),

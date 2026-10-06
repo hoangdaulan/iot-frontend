@@ -68,6 +68,10 @@ class AppTextField extends StatefulWidget {
 class _AppTextFieldState extends State<AppTextField> {
   late final TextEditingController _controller;
 
+  /// A controller passed in belongs to the caller: it is neither disposed here nor overwritten
+  /// by a missing [AppTextField.value].
+  bool get _ownsController => widget.controller == null;
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +85,8 @@ class _AppTextFieldState extends State<AppTextField> {
   }
 
   void _updateControllerValue() {
+    if (!_ownsController && widget.value == null) return;
+
     final value = widget.value ?? '';
     if (_controller.text == value) return;
 
@@ -109,7 +115,7 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_ownsController) _controller.dispose();
     super.dispose();
   }
 
