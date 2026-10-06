@@ -16,29 +16,28 @@ class DashboardState {
   /// Today's readings per sensor type.
   final Map<SensorType, SensorSeries> series;
 
-  /// Status of the ESP32's LED, the system's only controllable output.
-  final DeviceStatus ledStatus;
+  /// The controllable devices (LEDs) from the `devices` table, ordered by id.
+  final List<Device> devices;
   final Failure? failure;
 
   const DashboardState({
     this.isLoading = true,
     this.series = const {},
-    this.ledStatus = DeviceStatus.unknown,
+    this.devices = const [],
     this.failure,
   });
 
-  bool get isLedOn => ledStatus == DeviceStatus.on;
 
   DashboardState copyWith({
     bool? isLoading,
     Map<SensorType, SensorSeries>? series,
-    DeviceStatus? ledStatus,
+    List<Device>? devices,
     Failure? failure,
   }) {
     return DashboardState(
       isLoading: isLoading ?? this.isLoading,
       series: series ?? this.series,
-      ledStatus: ledStatus ?? this.ledStatus,
+      devices: devices ?? this.devices,
       failure: failure,
     );
   }
@@ -53,8 +52,10 @@ class DashboardCubit extends Cubit<DashboardState> {
   var _isCommandInFlight = false;
   var _isRefreshing = false;
 
-  /// Loads today's history for the charts, then the latest values and LED status.
+  /// Loads the device list and today's history for the charts, then the latest values and device
+  /// statuses.
   Future<void> loadDashboard() async {
+    final devicesResult = await _deviceRepository.getDevices();
     final now = DateTime.now();
     final historyResult = await _sensorRepository.getSensorHistory(
       SensorHistoryQuery(
@@ -67,13 +68,17 @@ class DashboardCubit extends Cubit<DashboardState> {
     final series = SensorSeries.group(historyResult.dataOrNull?.toReadings() ?? const []);
     emit(
       _withLatest(
-        state.copyWith(isLoading: false, series: series),
+        state.copyWith(
+          isLoading: false,
+          series: series,
+          devices: devicesResult.dataOrNull ?? state.devices,
+        ),
         latestResult.dataOrNull,
-      ).copyWith(failure: _firstFailure([historyResult, latestResult])),
+      ).copyWith(failure: _firstFailure([devicesResult, historyResult, latestResult])),
     );
   }
 
-  /// Fetches the newest values (and LED status) and appends them to today's series.
+  /// Fetches the newest values (and device statuses) and appends them to today's series.
   Future<void> refreshLatestSensorData() async {
     if (_isRefreshing) return;
 
@@ -89,19 +94,19 @@ class DashboardCubit extends Cubit<DashboardState> {
     }
   }
 
-  /// Sends the command and only updates the LED once the backend confirms it. On `FAILED` or
-  /// `TIMEOUT` the LED keeps its previous status and the backend message is reported.
-  Future<void> setLedOn(bool isOn) async {
+  /// Sends the command and only updates the device once the backend confirms it. On `FAILED` or
+  /// `TIMEOUT` the device keeps its previous status and the backend message is reported.
+  Future<void> setDeviceOn(int deviceId, bool isOn) async {
     if (_isCommandInFlight) return;
 
     _isCommandInFlight = true;
     final command = isOn ? DeviceCommand.on : DeviceCommand.off;
-    final result = await _deviceRepository.sendCommand(command);
+    final result = await _deviceRepository.sendCommand(deviceId, command);
     _isCommandInFlight = false;
 
     switch (result) {
       case Success(data: final commandResult) when commandResult.isSuccess:
-        emit(state.copyWith(ledStatus: command.resultingStatus));
+        emit(state.copyWith(devices: _withStatus(deviceId, command.resultingStatus)));
       case Success(data: final commandResult):
         emit(
           state.copyWith(
@@ -117,7 +122,13 @@ class DashboardCubit extends Cubit<DashboardState> {
     }
   }
 
-  /// Appends readings newer than the last one shown per type, and takes the reported LED status.
+  List<Device> _withStatus(int deviceId, DeviceStatus status) => [
+    for (final device in state.devices)
+      device.id == deviceId ? device.copyWith(status: status) : device,
+  ];
+
+  /// Appends readings newer than the last one shown per type, and takes the reported device
+  /// statuses.
   DashboardState _withLatest(DashboardState current, LatestSensorDataResponse? latest) {
     if (latest == null) return current;
 
@@ -126,7 +137,14 @@ class DashboardCubit extends Cubit<DashboardState> {
       final last = current.series.of(reading.type).readings.lastOrNull;
       if (last == null || reading.timestamp.isAfter(last.timestamp)) readings.add(reading);
     }
-    return current.copyWith(series: SensorSeries.group(readings), ledStatus: latest.deviceStatus);
+    final statuses = {for (final device in latest.devices) device.id: device.status};
+    return current.copyWith(
+      series: SensorSeries.group(readings),
+      devices: [
+        for (final device in current.devices)
+          device.copyWith(status: statuses[device.id] ?? device.status),
+      ],
+    );
   }
 
   Failure? _firstFailure(List<Result<Object?>> results) =>

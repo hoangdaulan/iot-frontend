@@ -15,7 +15,6 @@ void main() {
         'name': 'Đèn phòng khách',
         'type': 'LED',
         'status': 'ON',
-        'mqttTopic': 'home/led/1',
         'createdAt': '2026-09-01T08:00:00Z',
         'updatedAt': '2026-09-02T08:00:00Z',
       });
@@ -23,7 +22,6 @@ void main() {
       expect(device.type, 'LED');
       expect(device.status, DeviceStatus.on);
       expect(device.isOn, isTrue);
-      expect(device.mqttTopic, 'home/led/1');
       expect(device.createdAt, DateTime.utc(2026, 9, 1, 8).toLocal());
       expect(Device.fromJson({...device.toJson(), 'status': 'OFF'}).status, DeviceStatus.off);
     });
@@ -33,7 +31,6 @@ void main() {
 
       expect(device.status, DeviceStatus.unknown);
       expect(device.isOn, isFalse);
-      expect(device.mqttTopic, isNull);
       expect(device.createdAt, isNull);
     });
 

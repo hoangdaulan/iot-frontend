@@ -8,7 +8,7 @@ part 'latest_sensor_data_response.freezed.dart';
 part 'latest_sensor_data_response.g.dart';
 
 /// Response of `GET /api/sensor-data/latest`: the newest measurement per sensor type and the
-/// current LED status of the single ESP32. A type is absent if no data was received for it yet.
+/// current state of every device. A type is absent if no data was received for it yet.
 @freezed
 abstract class LatestSensorDataResponse with _$LatestSensorDataResponse {
   const LatestSensorDataResponse._();
@@ -16,6 +16,7 @@ abstract class LatestSensorDataResponse with _$LatestSensorDataResponse {
   const factory LatestSensorDataResponse({
     @Default({}) Map<SensorType, SensorDataEntry> data,
     @JsonKey(unknownEnumValue: DeviceStatus.unknown) DeviceStatus? deviceStatus,
+    @Default([]) List<Device> devices,
   }) = _LatestSensorDataResponse;
 
   factory LatestSensorDataResponse.fromJson(Map<String, dynamic> json) =>

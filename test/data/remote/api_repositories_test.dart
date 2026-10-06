@@ -134,7 +134,20 @@ void main() {
   });
 
   group('ApiDeviceRepository', () {
-    test('sendCommand posts to the single device', () async {
+    test('getDevices parses the device list', () async {
+      final backend = _FakeBackend(200, [
+        {'id': 1, 'name': 'LED 1', 'type': 'LED', 'status': 'ON'},
+        {'id': 2, 'name': 'LED 2', 'type': 'LED', 'status': 'OFF'},
+      ]);
+
+      final result = await ApiDeviceRepository(_dio(backend)).getDevices();
+
+      expect(backend.request?.path, '/api/devices');
+      expect(result.dataOrNull?.map((d) => d.name), ['LED 1', 'LED 2']);
+      expect(result.dataOrNull?.first.isOn, isTrue);
+    });
+
+    test('sendCommand posts to the given device', () async {
       final backend = _FakeBackend(200, {
         'deviceId': 1,
         'command': 'ON',
@@ -142,7 +155,7 @@ void main() {
         'message': 'Device turned on successfully',
       });
 
-      final result = await ApiDeviceRepository(_dio(backend)).sendCommand(DeviceCommand.on);
+      final result = await ApiDeviceRepository(_dio(backend)).sendCommand(1, DeviceCommand.on);
 
       expect(backend.request?.path, '/api/devices/1/command');
       expect(backend.requestBody, {'command': 'ON'});
@@ -159,7 +172,7 @@ void main() {
             'message': 'Device did not respond in time',
           }),
         ),
-      ).sendCommand(DeviceCommand.off);
+      ).sendCommand(1, DeviceCommand.off);
 
       expect(result, isA<Success>());
       expect(result.dataOrNull?.status, DeviceActionResult.timeout);
@@ -228,7 +241,7 @@ void main() {
       final failure =
           await ApiDeviceRepository(
                 _dio(_FakeBackend(404, {'message': 'Device not found'})),
-              ).sendCommand(DeviceCommand.on)
+              ).sendCommand(1, DeviceCommand.on)
               as Failure<Object?>;
 
       expect(failure.code, 404);

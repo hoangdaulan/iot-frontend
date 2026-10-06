@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/base/result.dart';
+import 'package:gp1/data/models/device.dart';
 import 'package:gp1/data/models/device_action.dart';
 import 'package:gp1/data/models/device_action_history_item.dart';
 import 'package:gp1/data/models/dto/device_command_request.dart';
@@ -16,10 +16,16 @@ class ApiDeviceRepository implements DeviceRepository {
   final Dio _dio;
 
   @override
-  Future<Result<DeviceCommandResult>> sendCommand(DeviceCommand command) async {
+  Future<Result<List<Device>>> getDevices() => guardRequest(() async {
+    final res = await _dio.get<List<dynamic>>('/api/devices');
+    return [for (final json in res.data!) Device.fromJson(json as Map<String, dynamic>)];
+  });
+
+  @override
+  Future<Result<DeviceCommandResult>> sendCommand(int deviceId, DeviceCommand command) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
-        '/api/devices/${AppConstants.deviceId}/command',
+        '/api/devices/$deviceId/command',
         data: DeviceCommandRequest(command: command).toJson(),
       );
       return Success(DeviceCommandResult.fromJson(res.data!));

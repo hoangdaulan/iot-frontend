@@ -1,6 +1,7 @@
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/mock/mock_device_actions.dart';
 import 'package:gp1/data/mock/mock_devices.dart';
+import 'package:gp1/data/models/device.dart';
 import 'package:gp1/data/models/device_action.dart';
 import 'package:gp1/data/models/device_action_history_item.dart';
 import 'package:gp1/data/models/dto/device_command_result.dart';
@@ -8,15 +9,18 @@ import 'package:gp1/data/models/dto/device_history_query.dart';
 import 'package:gp1/data/models/dto/page_response.dart';
 import 'package:gp1/data/repositories/device_repository.dart';
 
-/// Commands always succeed and update [mockLedStatus]; they are not appended to the generated
+/// Commands always succeed and update [mockDeviceStatuses]; they are not appended to the generated
 /// control history.
 class MockDeviceRepository implements DeviceRepository {
   @override
-  Future<Result<DeviceCommandResult>> sendCommand(DeviceCommand command) async {
-    mockLedStatus = command.resultingStatus;
+  Future<Result<List<Device>>> getDevices() async => Success(currentMockDevices());
+
+  @override
+  Future<Result<DeviceCommandResult>> sendCommand(int deviceId, DeviceCommand command) async {
+    mockDeviceStatuses[deviceId] = command.resultingStatus;
     return Success(
       DeviceCommandResult(
-        deviceId: mockDevice.id,
+        deviceId: deviceId,
         command: command,
         status: DeviceActionResult.success,
         message: 'Device turned ${command == DeviceCommand.on ? 'on' : 'off'} successfully',

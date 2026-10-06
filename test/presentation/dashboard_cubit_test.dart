@@ -27,7 +27,11 @@ class _ScriptedDeviceRepository implements DeviceRepository {
   final _inner = MockDeviceRepository();
 
   @override
-  Future<Result<DeviceCommandResult>> sendCommand(DeviceCommand command) async => commandResult;
+  Future<Result<List<Device>>> getDevices() => _inner.getDevices();
+
+  @override
+  Future<Result<DeviceCommandResult>> sendCommand(int deviceId, DeviceCommand command) async =>
+      commandResult;
 
   @override
   Future<Result<PageResponse<DeviceActionHistoryItem>>> getControlHistory(
@@ -39,7 +43,7 @@ class _ScriptedDeviceRepository implements DeviceRepository {
 class _ScriptedSensorRepository implements SensorRepository {
   final _inner = MockSensorRepository();
   var latestCalls = 0;
-  LatestSensorDataResponse latest = const LatestSensorDataResponse(deviceStatus: DeviceStatus.off);
+  LatestSensorDataResponse latest = const LatestSensorDataResponse();
   SensorHistoryQuery? lastHistoryQuery;
 
   @override
@@ -58,19 +62,24 @@ class _ScriptedSensorRepository implements SensorRepository {
   }
 }
 
-void main() {
-  setUp(() => mockLedStatus = mockDevice.status);
+const _ledOn = Device(id: 1, name: 'LED 1', type: 'LED', status: DeviceStatus.on);
 
-  test('loadDashboard shows today series and the LED status from the latest data', () async {
+bool _isLedOn(DashboardCubit cubit) => cubit.state.devices.firstWhere((d) => d.id == 1).isOn;
+
+void main() {
+  setUp(resetMockDevices);
+
+  test('loadDashboard shows the device list, today series and statuses from the latest data', () async {
     final sensors = _ScriptedSensorRepository()
-      ..latest = const LatestSensorDataResponse(deviceStatus: DeviceStatus.on);
+      ..latest = const LatestSensorDataResponse(devices: [_ledOn]);
     final cubit = DashboardCubit(sensors, MockDeviceRepository());
 
     await cubit.loadDashboard();
 
     expect(cubit.state.isLoading, isFalse);
     expect(cubit.state.series.keys, SensorType.values);
-    expect(cubit.state.isLedOn, isTrue);
+    expect(cubit.state.devices.map((d) => d.name), ['LED 1', 'LED 2', 'LED 3']);
+    expect(_isLedOn(cubit), isTrue);
     expect(sensors.latestCalls, 1);
     final today = DateTime.now();
     expect(sensors.lastHistoryQuery?.from, DateTime(today.year, today.month, today.day));
@@ -79,17 +88,17 @@ void main() {
     }
   });
 
-  group('setLedOn', () {
+  group('setDeviceOn', () {
     test('updates the LED once the command succeeds', () async {
       final cubit = DashboardCubit(MockSensorRepository(), MockDeviceRepository());
       await cubit.loadDashboard();
-      expect(cubit.state.isLedOn, isFalse);
+      expect(_isLedOn(cubit), isFalse);
 
-      await cubit.setLedOn(true);
-      expect(cubit.state.isLedOn, isTrue);
+      await cubit.setDeviceOn(1, true);
+      expect(_isLedOn(cubit), isTrue);
 
-      await cubit.setLedOn(false);
-      expect(cubit.state.isLedOn, isFalse);
+      await cubit.setDeviceOn(1, false);
+      expect(_isLedOn(cubit), isFalse);
       expect(cubit.state.failure, isNull);
     });
 
@@ -110,24 +119,24 @@ void main() {
         );
         await cubit.loadDashboard();
 
-        await cubit.setLedOn(true);
+        await cubit.setDeviceOn(1, true);
 
-        expect(cubit.state.isLedOn, isFalse);
+        expect(_isLedOn(cubit), isFalse);
         expect(cubit.state.failure?.message, 'Device did not respond in time');
       });
     }
 
     test('keeps the previous state when the request itself fails', () async {
-      mockLedStatus = DeviceStatus.on;
+      mockDeviceStatuses[1] = DeviceStatus.on;
       final cubit = DashboardCubit(
         MockSensorRepository(),
         _ScriptedDeviceRepository(const Failure(code: 403, message: 'You do not have permission')),
       );
       await cubit.loadDashboard();
 
-      await cubit.setLedOn(false);
+      await cubit.setDeviceOn(1, false);
 
-      expect(cubit.state.isLedOn, isTrue);
+      expect(_isLedOn(cubit), isTrue);
       expect(cubit.state.failure?.message, 'You do not have permission');
     });
 
@@ -146,7 +155,7 @@ void main() {
       );
       await cubit.loadDashboard();
 
-      await cubit.setLedOn(false);
+      await cubit.setDeviceOn(1, false);
 
       expect(cubit.state.failure?.message, 'Device did not accept OFF (Timeout)');
     });
@@ -164,7 +173,7 @@ void main() {
           SensorType.temperature: SensorDataEntry(id: 900, value: 31.4, timestamp: now),
           SensorType.light: SensorDataEntry(id: 901, value: 812, timestamp: now),
         },
-        deviceStatus: DeviceStatus.on,
+        devices: [_ledOn],
       );
 
       await cubit.refreshLatestSensorData();
@@ -174,7 +183,7 @@ void main() {
       expect(temperature.readings.length, before + 1);
       expect(temperature.latestValue, 31.4);
       expect(cubit.state.series.of(SensorType.light).latestValue, 812);
-      expect(cubit.state.isLedOn, isTrue);
+      expect(_isLedOn(cubit), isTrue);
     });
 
     test('ignores readings that are not newer than what is shown', () async {
@@ -204,13 +213,13 @@ void main() {
         for (final type in SensorType.values) type: cubit.state.series.of(type).readings.length,
       };
 
-      await cubit.setLedOn(true);
+      await cubit.setDeviceOn(1, true);
       await cubit.refreshLatestSensorData();
 
       for (final type in SensorType.values) {
         expect(cubit.state.series.of(type).readings.length, before[type]! + 1);
       }
-      expect(cubit.state.isLedOn, isTrue);
+      expect(_isLedOn(cubit), isTrue);
       expect(cubit.state.failure, isNull);
     });
   });

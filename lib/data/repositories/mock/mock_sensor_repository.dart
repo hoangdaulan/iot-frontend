@@ -57,7 +57,8 @@ class MockSensorRepository implements SensorRepository {
     return Success(
       LatestSensorDataResponse(
         data: {for (final r in generateLatestSensorReadings()) r.type: _entryOf(r)},
-        deviceStatus: mockLedStatus,
+        deviceStatus: mockDeviceStatuses[mockDevice.id],
+        devices: currentMockDevices(),
       ),
     );
   }

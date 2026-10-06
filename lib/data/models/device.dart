@@ -28,7 +28,6 @@ abstract class Device with _$Device {
     @JsonKey(unknownEnumValue: DeviceStatus.unknown)
     @Default(DeviceStatus.unknown)
     DeviceStatus status,
-    String? mqttTopic,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _Device;

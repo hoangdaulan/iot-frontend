@@ -137,14 +137,16 @@ class DashboardView extends StatelessWidget {
                   _ResponsiveGrid(
                     isWide: isWide,
                     children: [
-                      DeviceControlCard(
-                        title: 'LED',
-                        subtitle: 'Smart lighting control',
-                        icon: Icons.light_mode,
-                        color: const Color(0xFFFFD633),
-                        isOn: state.isLedOn,
-                        onToggle: context.read<DashboardCubit>().setLedOn,
-                      ),
+                      for (final device in state.devices)
+                        DeviceControlCard(
+                          title: device.name,
+                          subtitle: device.type,
+                          icon: Icons.light_mode,
+                          color: const Color(0xFFFFD633),
+                          isOn: device.isOn,
+                          onToggle: (isOn) =>
+                              context.read<DashboardCubit>().setDeviceOn(device.id, isOn),
+                        ),
                     ],
                   ),
 

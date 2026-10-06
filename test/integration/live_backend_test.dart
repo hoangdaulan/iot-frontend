@@ -99,9 +99,12 @@ void main() {
 
       final page = (await devices.getControlHistory(const DeviceHistoryQuery(size: 5))).dataOrNull!;
       expect(page.content, hasLength(5));
-      expect(page.content.first.deviceName, 'ESP32');
+      expect(page.content.first.deviceName, startsWith('LED'));
 
-      final command = await devices.sendCommand(DeviceCommand.off);
+      final list = (await devices.getDevices()).dataOrNull!;
+      expect(list.map((d) => d.id), [1, 2, 3]);
+
+      final command = await devices.sendCommand(1, DeviceCommand.off);
       expect(command.dataOrNull?.status, DeviceActionResult.timeout);
     },
     skip: skip,
