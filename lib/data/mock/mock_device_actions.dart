@@ -3,6 +3,7 @@ import 'package:gp1/data/mock/mock_random.dart';
 import 'package:gp1/data/models/device.dart';
 import 'package:gp1/data/models/device_action.dart';
 import 'package:gp1/data/models/device_action_history_item.dart';
+import 'package:gp1/data/models/dto/device_command_result.dart';
 
 // ── Control History (spanning Sept 2025 to Sept 2026) ──
 List<DeviceActionHistoryItem> generateControlHistory({int count = 200}) {
@@ -41,4 +42,27 @@ List<DeviceActionHistoryItem> generateControlHistory({int count = 200}) {
 
   actions.sort((a, b) => b.timestamp.compareTo(a.timestamp));
   return actions;
+}
+
+/// The generated history, created once so paging and filtering see the same rows on every call.
+/// New commands are added at the top by [recordMockAction].
+final List<DeviceActionHistoryItem> mockControlHistory = generateControlHistory(count: 200);
+
+/// Adds a command's outcome to [mockControlHistory] as the newest action.
+void recordMockAction(DeviceCommandResult result) {
+  final device = currentMockDevices().where((d) => d.id == result.deviceId).firstOrNull;
+  final isTurnOn = result.command == DeviceCommand.on;
+  mockControlHistory.insert(
+    0,
+    DeviceActionHistoryItem(
+      id: mockControlHistory.fold(0, (max, a) => a.id > max ? a.id : max) + 1,
+      deviceId: result.deviceId,
+      deviceName: device?.name ?? 'Device ${result.deviceId}',
+      action: isTurnOn ? DeviceActionType.turnOn : DeviceActionType.turnOff,
+      result: result.status,
+      timestamp: DateTime.now(),
+      status: result.isSuccess ? result.command.resultingStatus : null,
+      message: result.message,
+    ),
+  );
 }

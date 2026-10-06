@@ -16,6 +16,7 @@ import 'package:gp1/data/repositories/device_repository.dart';
 import 'package:gp1/data/repositories/mock/mock_auth_repository.dart';
 import 'package:gp1/data/repositories/mock/mock_device_repository.dart';
 import 'package:gp1/data/repositories/mock/mock_sensor_repository.dart';
+import 'package:gp1/data/repositories/mock_history_device_repository.dart';
 import 'package:gp1/data/repositories/sensor_repository.dart';
 import 'package:gp1/presentation/app/cubit/app_cubit.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
@@ -47,7 +48,10 @@ void configureDependencies() {
     getIt.registerLazySingleton<Dio>(() => createApiClient(talker: getIt<Talker>()));
     getIt.registerLazySingleton<AuthRepository>(() => ApiAuthRepository(getIt<Dio>()));
     getIt.registerLazySingleton<SensorRepository>(() => ApiSensorRepository(getIt<Dio>()));
-    getIt.registerLazySingleton<DeviceRepository>(() => ApiDeviceRepository(getIt<Dio>()));
+    // The control history is mock data, not the database; devices and commands use the backend.
+    getIt.registerLazySingleton<DeviceRepository>(
+      () => MockHistoryDeviceRepository(ApiDeviceRepository(getIt<Dio>()), MockDeviceRepository()),
+    );
   }
 
   // Auth

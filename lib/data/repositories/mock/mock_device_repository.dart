@@ -10,8 +10,8 @@ import 'package:gp1/data/models/dto/device_history_query.dart';
 import 'package:gp1/data/models/dto/page_response.dart';
 import 'package:gp1/data/repositories/device_repository.dart';
 
-/// Commands always succeed and update [mockDeviceStatuses]; they are not appended to the generated
-/// control history.
+/// Commands always succeed and update [mockDeviceStatuses]; each one is added to the mock control
+/// history.
 class MockDeviceRepository implements DeviceRepository {
   @override
   Future<Result<List<Device>>> getDevices() async => Success(currentMockDevices());
@@ -19,14 +19,14 @@ class MockDeviceRepository implements DeviceRepository {
   @override
   Future<Result<DeviceCommandResult>> sendCommand(int deviceId, DeviceCommand command) async {
     mockDeviceStatuses[deviceId] = command.resultingStatus;
-    return Success(
-      DeviceCommandResult(
-        deviceId: deviceId,
-        command: command,
-        status: DeviceActionResult.success,
-        message: 'Device turned ${command == DeviceCommand.on ? 'on' : 'off'} successfully',
-      ),
+    final result = DeviceCommandResult(
+      deviceId: deviceId,
+      command: command,
+      status: DeviceActionResult.success,
+      message: 'Device turned ${command == DeviceCommand.on ? 'on' : 'off'} successfully',
     );
+    recordMockAction(result);
+    return Success(result);
   }
 
   @override
@@ -41,7 +41,7 @@ class MockDeviceRepository implements DeviceRepository {
     if (text.isNotEmpty && timeRange == null) {
       return const Failure(code: 400, message: 'Invalid query parameters: q must be a time');
     }
-    final items = generateControlHistory(count: 200)
+    final items = mockControlHistory
         .where((a) => from == null || !a.timestamp.isBefore(from))
         .where((a) => to == null || !a.timestamp.isAfter(to))
         .where((a) => query.deviceId == null || a.deviceId == query.deviceId)
