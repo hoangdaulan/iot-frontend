@@ -19,7 +19,7 @@ class DeviceHistoryQuery {
   final DeviceActionType? action;
   final DeviceActionResult? result;
 
-  /// Matches the device name or a leading part of `yyyy/MM/dd HH:mm:ss`.
+  /// A leading part of `yyyy/MM/dd HH:mm:ss`; matches the actions inside that period.
   final String? query;
 
   /// Offset east of UTC in minutes, so the backend reads a time search in the user's zone.

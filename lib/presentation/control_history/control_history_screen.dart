@@ -88,8 +88,8 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                 child: TextFormField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    labelText: 'Search',
-                    hintText: 'Device or 2026/09/11 15:12:11',
+                    labelText: 'Search time',
+                    hintText: 'yyyy/MM/dd HH:mm:ss, e.g. 2026/10/06 11',
                     isDense: true,
                     prefixIcon: IconButton(
                       icon: const Icon(Icons.search, size: 20),

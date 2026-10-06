@@ -37,6 +37,10 @@ class MockDeviceRepository implements DeviceRepository {
     final to = query.to;
     final text = (query.query ?? '').trim();
     final timeRange = text.isEmpty ? null : mockTimePrefixRange(text);
+    // Like the backend, a query that is not a time is rejected instead of matching nothing.
+    if (text.isNotEmpty && timeRange == null) {
+      return const Failure(code: 400, message: 'Invalid query parameters: q must be a time');
+    }
     final items = generateControlHistory(count: 200)
         .where((a) => from == null || !a.timestamp.isBefore(from))
         .where((a) => to == null || !a.timestamp.isAfter(to))
@@ -45,11 +49,8 @@ class MockDeviceRepository implements DeviceRepository {
         .where((a) => query.result == null || a.result == query.result)
         .where(
           (a) =>
-              text.isEmpty ||
-              a.deviceName.toLowerCase().contains(text.toLowerCase()) ||
-              (timeRange != null &&
-                  !a.timestamp.isBefore(timeRange.$1) &&
-                  a.timestamp.isBefore(timeRange.$2)),
+              timeRange == null ||
+              (!a.timestamp.isBefore(timeRange.$1) && a.timestamp.isBefore(timeRange.$2)),
         )
         .toList();
 

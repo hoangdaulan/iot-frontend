@@ -81,16 +81,17 @@ void main() {
     expect(cubit.state.selectedAction, DeviceActionType.turnOn);
   });
 
-  test('result and search filters are sent and applied', () async {
+  test('result and time search filters are sent and applied', () async {
     await cubit.loadHistory();
+    final sample = cubit.state.actions.data.first.timestamp;
 
     await cubit.filterByResult(DeviceActionResult.failed);
     expect(cubit.state.actions.data.every((a) => a.result == DeviceActionResult.failed), isTrue);
 
-    await cubit.search(' led 3 ');
-    expect(repository.queries.last.query, 'led 3');
+    await cubit.search(' ${sample.year} ');
+    expect(repository.queries.last.query, '${sample.year}');
     expect(repository.queries.last.result, DeviceActionResult.failed);
-    expect(cubit.state.actions.data.every((a) => a.deviceName == 'LED 3'), isTrue);
+    expect(cubit.state.actions.data.every((a) => a.timestamp.year == sample.year), isTrue);
   });
 
   test('refresh fetches the current page again and keeps the filters', () async {
