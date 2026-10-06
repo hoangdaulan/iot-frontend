@@ -32,6 +32,12 @@ enum DeviceActionType {
   final String label;
 
   const DeviceActionType(this.label);
+
+  /// Value of the `action` query parameter of the control history.
+  String get wireValue => switch (this) {
+    DeviceActionType.turnOn => 'TURN_ON',
+    DeviceActionType.turnOff => 'TURN_OFF',
+  };
 }
 
 /// Outcome of a device command, as confirmed (or not) by the ESP32 over MQTT.
@@ -49,6 +55,9 @@ enum DeviceActionResult {
   final String label;
 
   const DeviceActionResult(this.label);
+
+  /// Value of the `result` query parameter of the control history.
+  String get wireValue => name.toUpperCase();
 }
 
 /// One control operation on a device (control history entity).

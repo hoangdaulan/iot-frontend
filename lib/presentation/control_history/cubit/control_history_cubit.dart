@@ -1,270 +1,131 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/base/result.dart';
+import 'package:gp1/data/models/device.dart';
 import 'package:gp1/data/models/device_action.dart';
 import 'package:gp1/data/models/device_action_history_item.dart';
 import 'package:gp1/data/models/dto/device_history_query.dart';
 import 'package:gp1/data/models/paged_list.dart';
 import 'package:gp1/data/repositories/device_repository.dart';
-import 'package:intl/intl.dart';
 
 class ControlHistoryState {
-  final PagedList<DeviceActionHistoryItem> actions;
-  final DeviceActionType? selectedAction;
-  final DeviceActionResult? selectedResult;
-  final DateTimeRange? dateRange;
-  final String searchQuery;
-  final Failure? failure;
-  final List<DeviceActionHistoryItem> _allActions;
-
   const ControlHistoryState({
     this.actions = const PagedList<DeviceActionHistoryItem>(),
+    this.devices = const [],
+    this.selectedDeviceId,
     this.selectedAction,
     this.selectedResult,
-    this.dateRange,
     this.searchQuery = '',
     this.failure,
-    List<DeviceActionHistoryItem> allActions = const [],
-  }) : _allActions = allActions;
+  });
+
+  final PagedList<DeviceActionHistoryItem> actions;
+
+  /// The devices to filter by, from the `devices` table.
+  final List<Device> devices;
+  final int? selectedDeviceId;
+  final DeviceActionType? selectedAction;
+  final DeviceActionResult? selectedResult;
+  final String searchQuery;
+  final Failure? failure;
 
   ControlHistoryState copyWith({
     PagedList<DeviceActionHistoryItem>? actions,
+    List<Device>? devices,
+    int? Function()? selectedDeviceId,
     DeviceActionType? Function()? selectedAction,
     DeviceActionResult? Function()? selectedResult,
-    DateTimeRange? Function()? dateRange,
     String? searchQuery,
     Failure? failure,
-    List<DeviceActionHistoryItem>? allActions,
   }) {
     return ControlHistoryState(
       actions: actions ?? this.actions,
+      devices: devices ?? this.devices,
+      selectedDeviceId: selectedDeviceId != null ? selectedDeviceId() : this.selectedDeviceId,
       selectedAction: selectedAction != null ? selectedAction() : this.selectedAction,
       selectedResult: selectedResult != null ? selectedResult() : this.selectedResult,
-      dateRange: dateRange != null ? dateRange() : this.dateRange,
       searchQuery: searchQuery ?? this.searchQuery,
       failure: failure,
-      allActions: allActions ?? _allActions,
     );
   }
 }
 
+/// The control history table. Filtering, searching and paging are done by the backend.
 class ControlHistoryCubit extends Cubit<ControlHistoryState> {
   ControlHistoryCubit(this._deviceRepository) : super(const ControlHistoryState());
 
   final DeviceRepository _deviceRepository;
 
+  /// Loads the device list for the filter, then the first page of history.
   Future<void> loadHistory() async {
-    // Filtering, search and paging stay client-side over the most recent window.
-    final result = await _deviceRepository.getControlHistory(
-      const DeviceHistoryQuery(size: AppConstants.historyFetchSize),
-    );
-    switch (result) {
-      case Success(data: final page):
-        emit(state.copyWith(allActions: page.content));
-        _applyFilters(page: 1);
-      case Failure():
-        emit(state.copyWith(failure: result));
+    final devicesResult = await _deviceRepository.getDevices();
+    if (devicesResult case Success(data: final devices)) {
+      emit(state.copyWith(devices: devices));
     }
+    await _load(page: 1);
+    if (devicesResult case Failure()) emit(state.copyWith(failure: devicesResult));
   }
 
-  void search(String query) {
-    emit(state.copyWith(searchQuery: query));
-    _applyFilters(page: 1);
-  }
+  Future<void> search(String query) => _load(page: 1, searchQuery: query.trim());
 
-  void filterByAction(DeviceActionType? action) {
-    emit(state.copyWith(selectedAction: () => action));
-    _applyFilters(page: 1);
-  }
+  Future<void> filterByDevice(int? deviceId) => _load(page: 1, selectedDeviceId: () => deviceId);
 
-  void filterByResult(DeviceActionResult? result) {
-    emit(state.copyWith(selectedResult: () => result));
-    _applyFilters(page: 1);
-  }
+  Future<void> filterByAction(DeviceActionType? action) =>
+      _load(page: 1, selectedAction: () => action);
 
-  void filterByDateRange(DateTimeRange? range) {
-    emit(state.copyWith(dateRange: () => range));
-    _applyFilters(page: 1);
-  }
+  Future<void> filterByResult(DeviceActionResult? result) =>
+      _load(page: 1, selectedResult: () => result);
 
-  void refresh() => _applyFilters(page: 1);
-  void changePageSize(int newPageSize) => _applyFilters(page: 1, pageSize: newPageSize);
-  void goToPage(int newPage) => _applyFilters(page: newPage);
+  /// Fetches the history again, so new actions show up, and keeps the current filters.
+  Future<void> refresh() => _load(page: state.actions.page);
 
-  void _applyFilters({int? page, int? pageSize}) {
-    var filtered = state._allActions.toList();
+  Future<void> changePageSize(int pageSize) => _load(page: 1, pageSize: pageSize);
 
-    if (state.selectedAction != null) {
-      filtered = filtered.where((a) => a.action == state.selectedAction).toList();
-    }
+  Future<void> goToPage(int page) => _load(page: page);
 
-    if (state.selectedResult != null) {
-      filtered = filtered.where((a) => a.result == state.selectedResult).toList();
-    }
+  Future<void> _load({
+    required int page,
+    int? pageSize,
+    String? searchQuery,
+    int? Function()? selectedDeviceId,
+    DeviceActionType? Function()? selectedAction,
+    DeviceActionResult? Function()? selectedResult,
+  }) async {
+    final deviceId = selectedDeviceId != null ? selectedDeviceId() : state.selectedDeviceId;
+    final action = selectedAction != null ? selectedAction() : state.selectedAction;
+    final result = selectedResult != null ? selectedResult() : state.selectedResult;
+    final query = searchQuery ?? state.searchQuery;
+    final size = pageSize ?? state.actions.pageSize;
 
-    if (state.dateRange != null) {
-      filtered = filtered.where((a) {
-        return a.timestamp.isAfter(state.dateRange!.start) &&
-            a.timestamp.isBefore(state.dateRange!.end);
-      }).toList();
-    }
-
-    if (state.searchQuery.trim().isNotEmpty) {
-      final q = state.searchQuery.trim().toLowerCase();
-      final dtRange = _parseDateTimeQuery(q);
-
-      final dmyFormat = DateFormat('dd/MM/yyyy HH:mm:ss');
-      final ymdFormat = DateFormat('yyyy/MM/dd HH:mm:ss');
-      final dmyDashFormat = DateFormat('dd-MM-yyyy HH:mm:ss');
-      final ymdDashFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
-
-      filtered = filtered.where((a) {
-        if (dtRange != null) {
-          final isAfterOrEqualStart =
-              a.timestamp.isAfter(dtRange.start) || a.timestamp.isAtSameMomentAs(dtRange.start);
-          final isBeforeOrEqualEnd =
-              a.timestamp.isBefore(dtRange.end) || a.timestamp.isAtSameMomentAs(dtRange.end);
-          if (isAfterOrEqualStart && isBeforeOrEqualEnd) {
-            return true;
-          }
-        }
-
-        final strDmy = dmyFormat.format(a.timestamp).toLowerCase();
-        final strYmd = ymdFormat.format(a.timestamp).toLowerCase();
-        final strDmyDash = dmyDashFormat.format(a.timestamp).toLowerCase();
-        final strYmdDash = ymdDashFormat.format(a.timestamp).toLowerCase();
-
-        return strDmy.contains(q) ||
-            strYmd.contains(q) ||
-            strDmyDash.contains(q) ||
-            strYmdDash.contains(q) ||
-            a.deviceName.toLowerCase().contains(q) ||
-            a.action.label.toLowerCase().contains(q) ||
-            a.result.label.toLowerCase().contains(q);
-      }).toList();
-    }
-
-    final currentPage = page ?? state.actions.page;
-    final currentPageSize = pageSize ?? state.actions.pageSize;
-    final totalPages = (filtered.length / currentPageSize).ceil().clamp(
-      1,
-      double.maxFinite.toInt(),
-    );
-
-    final startIndex = (currentPage - 1) * currentPageSize;
-    final endIndex = (startIndex + currentPageSize).clamp(0, filtered.length);
-    final pageData = startIndex < filtered.length
-        ? filtered.sublist(startIndex, endIndex)
-        : <DeviceActionHistoryItem>[];
-
-    emit(
-      state.copyWith(
-        actions: PagedList(
-          data: pageData,
-          page: currentPage,
-          pageSize: currentPageSize,
-          pageCounts: totalPages,
-        ),
+    final response = await _deviceRepository.getControlHistory(
+      DeviceHistoryQuery(
+        deviceId: deviceId,
+        action: action,
+        result: result,
+        query: query,
+        utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
+        page: page - 1,
+        size: size,
       ),
     );
-  }
 
-  DateTimeRange? _parseDateTimeQuery(String query) {
-    final q = query.trim();
-    if (q.isEmpty) return null;
-
-    // 1. yyyy/MM/dd HH:mm:ss or yyyy-MM-dd HH:mm:ss or yyyy/MM/dd or yyyy-MM or yyyy
-    final ymdRegex = RegExp(
-      r'^(\d{4})(?:[/-](\d{1,2})(?:[/-](\d{1,2})(?:[\sT](\d{1,2})(?::(\d{1,2})(?::(\d{1,2}))?)?)?)?)?$',
-    );
-    var match = ymdRegex.firstMatch(q);
-    if (match != null) {
-      final year = int.parse(match.group(1)!);
-      final month = match.group(2) != null ? int.parse(match.group(2)!) : null;
-      final day = match.group(3) != null ? int.parse(match.group(3)!) : null;
-      final hour = match.group(4) != null ? int.parse(match.group(4)!) : null;
-      final minute = match.group(5) != null ? int.parse(match.group(5)!) : null;
-      final second = match.group(6) != null ? int.parse(match.group(6)!) : null;
-
-      return _buildRange(
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-      );
+    switch (response) {
+      case Success(data: final data):
+        emit(
+          state.copyWith(
+            selectedDeviceId: () => deviceId,
+            selectedAction: () => action,
+            selectedResult: () => result,
+            searchQuery: query,
+            actions: PagedList(
+              data: data.content,
+              page: page,
+              pageSize: size,
+              pageCounts: data.totalPages < 1 ? 1 : data.totalPages,
+            ),
+          ),
+        );
+      case Failure():
+        emit(state.copyWith(failure: response));
     }
-
-    // 2. dd/MM/yyyy HH:mm:ss or dd-MM-yyyy HH:mm:ss or dd/MM/yyyy
-    final dmyRegex = RegExp(
-      r'^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:[\sT](\d{1,2})(?::(\d{1,2})(?::(\d{1,2}))?)?)?$',
-    );
-    match = dmyRegex.firstMatch(q);
-    if (match != null) {
-      final day = int.parse(match.group(1)!);
-      final month = int.parse(match.group(2)!);
-      final year = int.parse(match.group(3)!);
-      final hour = match.group(4) != null ? int.parse(match.group(4)!) : null;
-      final minute = match.group(5) != null ? int.parse(match.group(5)!) : null;
-      final second = match.group(6) != null ? int.parse(match.group(6)!) : null;
-
-      return _buildRange(
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-      );
-    }
-
-    return null;
-  }
-
-  DateTimeRange? _buildRange({
-    required int year,
-    int? month,
-    int? day,
-    int? hour,
-    int? minute,
-    int? second,
-  }) {
-    if (month == null || month < 1 || month > 12) {
-      final start = DateTime(year, 1, 1);
-      final end = DateTime(year, 12, 31, 23, 59, 59, 999);
-      return DateTimeRange(start: start, end: end);
-    }
-
-    final maxDaysInMonth = DateTime(year, month + 1, 0).day;
-
-    if (day == null || day < 1 || day > maxDaysInMonth) {
-      final start = DateTime(year, month, 1);
-      final end = DateTime(year, month, maxDaysInMonth, 23, 59, 59, 999);
-      return DateTimeRange(start: start, end: end);
-    }
-
-    if (hour == null || hour < 0 || hour > 23) {
-      final start = DateTime(year, month, day);
-      final end = DateTime(year, month, day, 23, 59, 59, 999);
-      return DateTimeRange(start: start, end: end);
-    }
-
-    if (minute == null || minute < 0 || minute > 59) {
-      final start = DateTime(year, month, day, hour);
-      final end = DateTime(year, month, day, hour, 59, 59, 999);
-      return DateTimeRange(start: start, end: end);
-    }
-
-    if (second == null || second < 0 || second > 59) {
-      final start = DateTime(year, month, day, hour, minute);
-      final end = DateTime(year, month, day, hour, minute, 59, 999);
-      return DateTimeRange(start: start, end: end);
-    }
-
-    final start = DateTime(year, month, day, hour, minute, second);
-    final end = DateTime(year, month, day, hour, minute, second, 999);
-    return DateTimeRange(start: start, end: end);
   }
 }

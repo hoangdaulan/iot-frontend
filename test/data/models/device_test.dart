@@ -228,6 +228,29 @@ void main() {
       expect(DeviceActionHistoryItem.fromJson(item.toJson()), item);
     });
 
+    test('DeviceHistoryQuery sends device, action, result and search', () {
+      expect(
+        const DeviceHistoryQuery(
+          deviceId: 2,
+          action: DeviceActionType.turnOff,
+          result: DeviceActionResult.timeout,
+          query: ' 2026/10/06 11 ',
+          utcOffsetMinutes: 420,
+        ).toQueryParameters(),
+        {
+          'deviceId': '2',
+          'action': 'TURN_OFF',
+          'result': 'TIMEOUT',
+          'q': '2026/10/06 11',
+          'utcOffset': '420',
+        },
+      );
+      expect(
+        const DeviceHistoryQuery(query: '  ', utcOffsetMinutes: 420).toQueryParameters(),
+        isEmpty,
+      );
+    });
+
     test('DeviceHistoryQuery sends only the parameters that are set', () {
       expect(const DeviceHistoryQuery().toQueryParameters(), isEmpty);
       expect(

@@ -65,16 +65,36 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // Search input box for time/text
+              // Device filter, from the devices table
+              SizedBox(
+                width: 160,
+                child: DropdownButtonFormField<int?>(
+                  // Rebuilt when the options or selection change.
+                  key: ValueKey((state.devices.length, state.selectedDeviceId)),
+                  initialValue: state.selectedDeviceId,
+                  decoration: const InputDecoration(labelText: 'Device', isDense: true),
+                  items: [
+                    const DropdownMenuItem<int?>(value: null, child: Text('All Devices')),
+                    ...state.devices.map(
+                      (d) => DropdownMenuItem<int?>(value: d.id, child: Text(d.name)),
+                    ),
+                  ],
+                  onChanged: cubit.filterByDevice,
+                ),
+              ),
+              // Search by device name or time; applied on Enter or the search icon
               SizedBox(
                 width: 280,
                 child: TextFormField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    labelText: 'Search time',
-                    hintText: 'VD: 2026/09/11 15:12:11',
+                    labelText: 'Search',
+                    hintText: 'Device or 2026/09/11 15:12:11',
                     isDense: true,
-                    prefixIcon: const Icon(Icons.search, size: 20),
+                    prefixIcon: IconButton(
+                      icon: const Icon(Icons.search, size: 20),
+                      onPressed: () => cubit.search(_searchController.text),
+                    ),
                     suffixIcon: state.searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, size: 18),
@@ -85,14 +105,15 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                           )
                         : null,
                   ),
-                  onChanged: cubit.search,
+                  textInputAction: TextInputAction.search,
+                  onFieldSubmitted: cubit.search,
                 ),
               ),
               // Action filter (ON/OFF)
               SizedBox(
                 width: 140,
                 child: DropdownButtonFormField<DeviceActionType?>(
-                  value: state.selectedAction,
+                  initialValue: state.selectedAction,
                   decoration: const InputDecoration(labelText: 'Action', isDense: true),
                   items: [
                     const DropdownMenuItem<DeviceActionType?>(
@@ -110,7 +131,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               SizedBox(
                 width: 140,
                 child: DropdownButtonFormField<DeviceActionResult?>(
-                  value: state.selectedResult,
+                  initialValue: state.selectedResult,
                   decoration: const InputDecoration(labelText: 'Status', isDense: true),
                   items: [
                     const DropdownMenuItem<DeviceActionResult?>(
@@ -127,10 +148,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                 ),
               ),
               FilledButton.icon(
-                onPressed: () {
-                  _searchController.clear();
-                  cubit.refresh();
-                },
+                onPressed: cubit.refresh,
                 icon: const Icon(Icons.refresh, size: 18),
                 label: const Text('Refresh'),
               ),

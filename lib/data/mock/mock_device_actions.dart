@@ -11,6 +11,7 @@ List<DeviceActionHistoryItem> generateControlHistory({int count = 200}) {
   final totalSeconds = end.difference(start).inSeconds;
   final actions = <DeviceActionHistoryItem>[];
 
+  final devices = currentMockDevices();
   final step = totalSeconds / count;
 
   for (var i = 0; i < count; i++) {
@@ -18,6 +19,7 @@ List<DeviceActionHistoryItem> generateControlHistory({int count = 200}) {
     final secondsOffset = (i * step + jitter).toInt();
     final timestamp = start.add(Duration(seconds: secondsOffset.clamp(0, totalSeconds)));
     final action = mockRandom.nextBool() ? DeviceActionType.turnOn : DeviceActionType.turnOff;
+    final device = devices[mockRandom.nextInt(devices.length)];
     final result = mockRandom.nextDouble() > 0.15
         ? DeviceActionResult.success
         : DeviceActionResult.failed;
@@ -25,8 +27,8 @@ List<DeviceActionHistoryItem> generateControlHistory({int count = 200}) {
     actions.add(
       DeviceActionHistoryItem(
         id: i,
-        deviceId: mockDevice.id,
-        deviceName: mockDevice.name,
+        deviceId: device.id,
+        deviceName: device.name,
         action: action,
         result: result,
         timestamp: timestamp,

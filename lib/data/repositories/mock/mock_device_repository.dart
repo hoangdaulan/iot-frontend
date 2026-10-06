@@ -1,6 +1,7 @@
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/mock/mock_device_actions.dart';
 import 'package:gp1/data/mock/mock_devices.dart';
+import 'package:gp1/data/mock/mock_search.dart';
 import 'package:gp1/data/models/device.dart';
 import 'package:gp1/data/models/device_action.dart';
 import 'package:gp1/data/models/device_action_history_item.dart';
@@ -34,9 +35,22 @@ class MockDeviceRepository implements DeviceRepository {
   ) async {
     final from = query.from;
     final to = query.to;
+    final text = (query.query ?? '').trim();
+    final timeRange = text.isEmpty ? null : mockTimePrefixRange(text);
     final items = generateControlHistory(count: 200)
         .where((a) => from == null || !a.timestamp.isBefore(from))
         .where((a) => to == null || !a.timestamp.isAfter(to))
+        .where((a) => query.deviceId == null || a.deviceId == query.deviceId)
+        .where((a) => query.action == null || a.action == query.action)
+        .where((a) => query.result == null || a.result == query.result)
+        .where(
+          (a) =>
+              text.isEmpty ||
+              a.deviceName.toLowerCase().contains(text.toLowerCase()) ||
+              (timeRange != null &&
+                  !a.timestamp.isBefore(timeRange.$1) &&
+                  a.timestamp.isBefore(timeRange.$2)),
+        )
         .toList();
 
     final page = query.page ?? 0;

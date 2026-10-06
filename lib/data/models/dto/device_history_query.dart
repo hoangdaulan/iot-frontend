@@ -1,9 +1,29 @@
 import 'package:gp1/core/utils/converters/date_time_converter.dart';
+import 'package:gp1/data/models/device_action.dart';
 
-/// Query parameters of `GET /api/devices/control-history`. All are optional; there is only one
-/// device, so no device filter is sent.
+/// Query parameters of `GET /api/devices/control-history`. All are optional.
 class DeviceHistoryQuery {
-  const DeviceHistoryQuery({this.from, this.to, this.page, this.size});
+  const DeviceHistoryQuery({
+    this.deviceId,
+    this.action,
+    this.result,
+    this.query,
+    this.utcOffsetMinutes,
+    this.from,
+    this.to,
+    this.page,
+    this.size,
+  });
+
+  final int? deviceId;
+  final DeviceActionType? action;
+  final DeviceActionResult? result;
+
+  /// Matches the device name or a leading part of `yyyy/MM/dd HH:mm:ss`.
+  final String? query;
+
+  /// Offset east of UTC in minutes, so the backend reads a time search in the user's zone.
+  final int? utcOffsetMinutes;
 
   final DateTime? from;
   final DateTime? to;
@@ -13,6 +33,13 @@ class DeviceHistoryQuery {
   final int? size;
 
   Map<String, String> toQueryParameters() => {
+    if (deviceId != null) 'deviceId': '$deviceId',
+    if (action != null) 'action': action!.wireValue,
+    if (result != null) 'result': result!.wireValue,
+    if ((query?.trim() ?? '').isNotEmpty) ...{
+      'q': query!.trim(),
+      if (utcOffsetMinutes != null) 'utcOffset': '$utcOffsetMinutes',
+    },
     if (from != null) 'from': const DateTimeConverter().toJson(from!),
     if (to != null) 'to': const DateTimeConverter().toJson(to!),
     if (page != null) 'page': '$page',
