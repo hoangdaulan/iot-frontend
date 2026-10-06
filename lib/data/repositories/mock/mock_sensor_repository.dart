@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/mock/mock_devices.dart';
 import 'package:gp1/data/mock/mock_sensor_data.dart';
@@ -8,6 +10,7 @@ import 'package:gp1/data/models/dto/sensor_history_query.dart';
 import 'package:gp1/data/models/dto/sensor_history_response.dart';
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
+import 'package:gp1/data/models/sensor_search_field.dart';
 import 'package:gp1/data/repositories/sensor_repository.dart';
 
 class MockSensorRepository implements SensorRepository {
@@ -32,6 +35,7 @@ class MockSensorRepository implements SensorRepository {
         .where((r) => from == null || !r.timestamp.isBefore(from))
         .where((r) => to == null || !r.timestamp.isAfter(to))
         .where((r) => query.value == null || r.value == query.value)
+        .where(_searchMatcher(query))
         .toList();
 
     final page = query.page ?? 0;
@@ -50,6 +54,75 @@ class MockSensorRepository implements SensorRepository {
         totalPages: (readings.length / size).ceil(),
       ),
     );
+  }
+
+  /// Mirrors the backend `filter`/`q` search so the mock behaves like the real API.
+  static bool Function(SensorReading) _searchMatcher(SensorHistoryQuery query) {
+    final field = query.searchField ?? SensorSearchField.all;
+    final text = (query.searchQuery ?? '').trim();
+
+    bool bySensor(SensorReading r) {
+      final sensor = mockSensorOf(r.type);
+      return sensor.id == int.tryParse(text) ||
+          sensor.name.toLowerCase().contains(text.toLowerCase());
+    }
+
+    final valueRange = _valueRange(text);
+    bool byValue(SensorReading r) =>
+        valueRange != null && r.value >= valueRange.$1 && r.value < valueRange.$2;
+
+    final timeRange = _timePrefixRange(text);
+    bool byTime(SensorReading r) =>
+        timeRange != null &&
+        !r.timestamp.isBefore(timeRange.$1) &&
+        r.timestamp.isBefore(timeRange.$2);
+
+    if (field == SensorSearchField.all) {
+      if (text.isEmpty) return (_) => true;
+      return (r) => bySensor(r) || byValue(r) || byTime(r);
+    }
+    if (text.isEmpty) {
+      return field == SensorSearchField.sensor || field == SensorSearchField.time
+          ? (_) => true
+          : (r) => r.type.name == field.wireValue;
+    }
+    return switch (field) {
+      SensorSearchField.sensor => bySensor,
+      SensorSearchField.time => byTime,
+      _ => (r) => r.type.name == field.wireValue && byValue(r),
+    };
+  }
+
+  /// Values starting with the typed number: `28` is 28 up to 29, `28.5` is 28.5 up to 28.6.
+  static (double, double)? _valueRange(String text) {
+    final value = double.tryParse(text);
+    if (value == null || !value.isFinite) return null;
+    final decimals = text.contains('.') ? text.split('.').last.length : 0;
+    final step = 1 / math.pow(10, decimals);
+    return text.startsWith('-') ? (value - step, value) : (value, value + step);
+  }
+
+  static final _timePrefix = RegExp(
+    r'^(\d{4})(?:[/-](\d{1,2})(?:[/-](\d{1,2})(?:[ T](\d{1,2})(?::(\d{1,2})(?::(\d{1,2}))?)?)?)?)?$',
+  );
+
+  /// `[start, end)` named by a leading part of `yyyy/MM/dd HH:mm:ss`, in local time.
+  static (DateTime, DateTime)? _timePrefixRange(String text) {
+    final m = _timePrefix.firstMatch(text);
+    if (m == null) return null;
+    final parts = [for (var i = 1; i <= 6; i++) m.group(i) == null ? null : int.parse(m.group(i)!)];
+    final given = parts.takeWhile((p) => p != null).length;
+    int part(int i, int fallback) => parts[i] ?? fallback;
+    final start = DateTime(parts[0]!, part(1, 1), part(2, 1), part(3, 0), part(4, 0), part(5, 0));
+    final end = switch (given) {
+      1 => DateTime(start.year + 1),
+      2 => DateTime(start.year, start.month + 1),
+      3 => DateTime(start.year, start.month, start.day + 1),
+      4 => DateTime(start.year, start.month, start.day, start.hour + 1),
+      5 => DateTime(start.year, start.month, start.day, start.hour, start.minute + 1),
+      _ => start.add(const Duration(seconds: 1)),
+    };
+    return (start, end);
   }
 
   @override

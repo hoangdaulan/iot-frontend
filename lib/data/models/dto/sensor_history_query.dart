@@ -1,9 +1,20 @@
 import 'package:gp1/core/utils/converters/date_time_converter.dart';
 import 'package:gp1/data/models/sensor.dart';
+import 'package:gp1/data/models/sensor_search_field.dart';
 
 /// Query parameters of `GET /api/sensor-data/history`. All are optional.
 class SensorHistoryQuery {
-  const SensorHistoryQuery({this.type, this.from, this.to, this.value, this.page, this.size});
+  const SensorHistoryQuery({
+    this.type,
+    this.from,
+    this.to,
+    this.value,
+    this.searchField,
+    this.searchQuery,
+    this.utcOffsetMinutes,
+    this.page,
+    this.size,
+  });
 
   final SensorType? type;
 
@@ -13,6 +24,15 @@ class SensorHistoryQuery {
 
   /// Exact measured value to search for.
   final double? value;
+
+  /// What [searchQuery] is matched against. All: any of the others; sensor: id or name; a sensor
+  /// type: values starting with the typed number (28 is 28.0 - 28.99); time: a leading part of
+  /// `yyyy/MM/dd HH:mm:ss`.
+  final SensorSearchField? searchField;
+  final String? searchQuery;
+
+  /// Offset east of UTC in minutes, so the backend reads a time search in the user's zone.
+  final int? utcOffsetMinutes;
 
   /// 0-based, like control history.
   final int? page;
@@ -24,6 +44,12 @@ class SensorHistoryQuery {
     if (type != null) 'type': type!.name,
     if (from != null || to != null) 'timeRange': '${_format(from)}/${_format(to)}',
     if (value != null) 'value': '$value',
+    if (searchField != null && searchField != SensorSearchField.all)
+      'filter': searchField!.wireValue,
+    if ((searchQuery?.trim() ?? '').isNotEmpty) 'q': searchQuery!.trim(),
+    if ((searchField == SensorSearchField.time || searchField == SensorSearchField.all) &&
+        utcOffsetMinutes != null)
+      'utcOffset': '$utcOffsetMinutes',
     if (page != null) 'page': '$page',
     if (size != null) 'size': '$size',
   };

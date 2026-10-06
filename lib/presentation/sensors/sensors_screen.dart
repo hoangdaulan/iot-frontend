@@ -4,6 +4,7 @@ import 'package:gp1/core/di/injection.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
+import 'package:gp1/data/models/sensor_search_field.dart';
 import 'package:gp1/generated/colors.gen.dart';
 import 'package:gp1/presentation/sensors/cubit/sensors_cubit.dart';
 import 'package:gp1/presentation/widgets/app_info_chip.dart';
@@ -33,36 +34,36 @@ class SensorsView extends StatefulWidget {
 }
 
 class _SensorsViewState extends State<SensorsView> {
-  late final TextEditingController _searchController;
-  late final TextEditingController _quickSearchController;
+  late final TextEditingController _queryController;
+  late SensorSearchField _field;
 
   @override
   void initState() {
     super.initState();
     final state = context.read<SensorsCubit>().state;
-    _searchController = TextEditingController(text: state.searchQuery);
-    _quickSearchController = TextEditingController();
+    _field = state.field;
+    _queryController = TextEditingController(text: state.query);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _quickSearchController.dispose();
+    _queryController.dispose();
     super.dispose();
+  }
+
+  void _search() => context.read<SensorsCubit>().search(_field, _queryController.text);
+
+  void _clear() {
+    setState(() => _field = SensorSearchField.all);
+    _queryController.clear();
+    context.read<SensorsCubit>().clear();
   }
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<SensorsCubit>();
     final state = context.watch<SensorsCubit>().state;
-    final timeFormat = DateFormat(state.precision.formatPattern);
-
-    const labelStyle = TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.8,
-      color: ColorName.labelSecondary,
-    );
+    final timeFormat = DateFormat('yyyy/MM/dd HH:mm:ss');
 
     return Column(
       children: [
@@ -70,143 +71,55 @@ class _SensorsViewState extends State<SensorsView> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Wrap(
-            spacing: 24,
+            spacing: 12,
             runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // ── DATE & TIME RANGE ──
+              // ── Field ──
               SizedBox(
-                width: 280,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('DATE & TIME', style: labelStyle),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'DD/MM/YYYY HH:MM:SS',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-                        prefixIcon: const Padding(
-                          padding: EdgeInsets.only(left: 10, right: 8),
-                          child: Icon(
-                            Icons.calendar_today_outlined,
-                            size: 18,
-                            color: ColorName.labelSecondary,
-                          ),
-                        ),
-                        suffixIcon: state.searchQuery.isNotEmpty
-                            ? IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  cubit.search('');
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: cubit.search,
-                    ),
+                width: 180,
+                child: DropdownButtonFormField<SensorSearchField>(
+                  // Rebuilt on change so Clear can reset the selection.
+                  key: ValueKey(_field),
+                  initialValue: _field,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  isExpanded: true,
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                  items: [
+                    for (final field in SensorSearchField.values)
+                      DropdownMenuItem(value: field, child: Text(field.label)),
                   ],
+                  onChanged: (field) => setState(() => _field = field ?? SensorSearchField.all),
                 ),
               ),
-              // ── SENSOR TYPE ──
+              // ── Query ──
               SizedBox(
-                width: 200,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('SENSOR TYPE', style: labelStyle),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<SensorType?>(
-                      initialValue: state.selectedType,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-                      items: [
-                        const DropdownMenuItem<SensorType?>(
-                          value: null,
-                          child: Text('All Sensors'),
-                        ),
-                        ...SensorType.values.map(
-                          (type) => DropdownMenuItem(value: type, child: Text(type.label)),
-                        ),
-                      ],
-                      onChanged: cubit.filterByType,
-                    ),
-                  ],
+                width: 320,
+                child: TextFormField(
+                  controller: _queryController,
+                  decoration: InputDecoration(
+                    hintText: _field.hint,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  textInputAction: TextInputAction.search,
+                  onFieldSubmitted: (_) => _search(),
                 ),
               ),
-              // ── QUICK SEARCH ──
-              SizedBox(
-                width: 260,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('SEARCH', style: labelStyle),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _quickSearchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search values or IDs',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-                        prefixIcon: const Padding(
-                          padding: EdgeInsets.only(left: 10, right: 8),
-                          child: Icon(Icons.search, size: 18, color: ColorName.labelSecondary),
-                        ),
-                        suffixIcon: _quickSearchController.text.isNotEmpty
-                            ? IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _quickSearchController.clear();
-                                  cubit.filterByMinValue(null);
-                                  cubit.filterByMaxValue(null);
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: (val) {
-                        setState(() {});
-                        final doubleVal = double.tryParse(val);
-                        if (doubleVal != null) {
-                          cubit.filterByMinValue(doubleVal);
-                          cubit.filterByMaxValue(doubleVal);
-                        } else {
-                          cubit.filterByMinValue(null);
-                          cubit.filterByMaxValue(null);
-                          cubit.search(val.isNotEmpty ? val : _searchController.text);
-                        }
-                      },
-                    ),
-                  ],
-                ),
+              // ── Search ──
+              FilledButton.icon(
+                onPressed: _search,
+                icon: const Icon(Icons.search, size: 18),
+                label: const Text('Search'),
               ),
-              // ── Refresh Button ──
-              Padding(
-                padding: const EdgeInsets.only(bottom: 1),
-                child: FilledButton.icon(
-                  onPressed: () {
-                    _searchController.clear();
-                    _quickSearchController.clear();
-                    cubit.refresh();
-                  },
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Refresh'),
-                ),
+              // ── Clear ──
+              OutlinedButton.icon(
+                onPressed: _clear,
+                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                label: const Text('Clear filter'),
               ),
             ],
           ),
@@ -261,11 +174,7 @@ class _SensorsViewState extends State<SensorsView> {
                 ),
               ),
             ],
-            onRefresh: () {
-              _searchController.clear();
-              _quickSearchController.clear();
-              cubit.refresh();
-            },
+            onRefresh: cubit.refresh,
             onRowsPerPageChanged: cubit.changePageSize,
             onPageChanged: cubit.goToPage,
           ),

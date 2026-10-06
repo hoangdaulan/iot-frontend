@@ -4,6 +4,7 @@ import 'package:gp1/data/models/dto/latest_sensor_data_response.dart';
 import 'package:gp1/data/models/dto/sensor_history_query.dart';
 import 'package:gp1/data/models/dto/sensor_history_response.dart';
 import 'package:gp1/data/models/sensor.dart';
+import 'package:gp1/data/models/sensor_search_field.dart';
 import 'package:gp1/data/models/sensor_data.dart';
 
 void main() {
@@ -189,5 +190,51 @@ void main() {
       SensorHistoryQuery(from: DateTime.utc(2026, 8, 1)).toQueryParameters()['timeRange'],
       '2026-08-01T00:00:00.000Z/..',
     );
+  });
+
+  group('SensorHistoryQuery search', () {
+    test('sends filter and q, and the UTC offset only for a time search', () {
+      expect(
+        const SensorHistoryQuery(
+          searchField: SensorSearchField.time,
+          searchQuery: ' 2026/10/06 11 ',
+          utcOffsetMinutes: 420,
+        ).toQueryParameters(),
+        {'filter': 'time', 'q': '2026/10/06 11', 'utcOffset': '420'},
+      );
+      expect(
+        const SensorHistoryQuery(
+          searchField: SensorSearchField.temperature,
+          searchQuery: '28.5',
+          utcOffsetMinutes: 420,
+        ).toQueryParameters(),
+        {'filter': 'temperature', 'q': '28.5'},
+      );
+    });
+
+    test('All sends the query with the UTC offset, an empty query sends nothing', () {
+      expect(
+        const SensorHistoryQuery(
+          searchField: SensorSearchField.all,
+          searchQuery: 'led',
+          utcOffsetMinutes: 420,
+        ).toQueryParameters(),
+        {'q': 'led', 'utcOffset': '420'},
+      );
+      expect(
+        const SensorHistoryQuery(
+          searchField: SensorSearchField.all,
+          searchQuery: ' ',
+        ).toQueryParameters(),
+        isEmpty,
+      );
+      expect(
+        const SensorHistoryQuery(
+          searchField: SensorSearchField.sensor,
+          searchQuery: '  ',
+        ).toQueryParameters(),
+        {'filter': 'sensor'},
+      );
+    });
   });
 }
