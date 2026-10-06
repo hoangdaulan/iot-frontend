@@ -105,4 +105,27 @@ void main() {
     expect(repository.queries.last.deviceId, 1);
     expect(cubit.state.selectedDeviceId, 1);
   });
+
+  test('clear resets every filter and the search, and reloads the first page', () async {
+    await cubit.loadHistory();
+    await cubit.filterByDevice(2);
+    await cubit.filterByAction(DeviceActionType.turnOn);
+    await cubit.filterByResult(DeviceActionResult.failed);
+    await cubit.search('2026');
+    await cubit.goToPage(2);
+
+    await cubit.clear();
+
+    final query = repository.queries.last;
+    expect(query.deviceId, isNull);
+    expect(query.action, isNull);
+    expect(query.result, isNull);
+    expect(query.query, '');
+    expect(query.page, 0);
+    expect(cubit.state.selectedDeviceId, isNull);
+    expect(cubit.state.selectedAction, isNull);
+    expect(cubit.state.selectedResult, isNull);
+    expect(cubit.state.searchQuery, '');
+    expect(cubit.state.actions.page, 1);
+  });
 }

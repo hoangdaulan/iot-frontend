@@ -123,6 +123,23 @@ void main() {
       );
     });
 
+    test('RegisterRequest includes the full name when it is given', () {
+      expect(
+        const RegisterRequest(
+          name: 'Nguyen Van A',
+          username: 'user01',
+          email: 'user01@gmail.com',
+          password: '123456',
+        ).toJson(),
+        {
+          'name': 'Nguyen Van A',
+          'username': 'user01',
+          'email': 'user01@gmail.com',
+          'password': '123456',
+        },
+      );
+    });
+
     test('RegisterResponse parses the documented 201 response', () {
       final response = RegisterResponse.fromJson({
         'message': 'Register successfully',
@@ -137,6 +154,28 @@ void main() {
 
     test('UpdateProfileRequest only sends the fields that changed', () {
       expect(const UpdateProfileRequest(phone: '0912345678').toJson(), {'phone': '0912345678'});
+      expect(const UpdateProfileRequest(name: 'A', swagger: 'http://x/swagger').toJson(), {
+        'name': 'A',
+        'swagger': 'http://x/swagger',
+      });
+      expect(const UpdateProfileRequest().hasNoChanges, isTrue);
+      expect(const UpdateProfileRequest(figma: '').hasNoChanges, isFalse);
+    });
+
+    test('User parses swagger and shows the full name, else the username', () {
+      final user = User.fromJson({
+        'id': 1,
+        'username': 'admin',
+        'email': 'a@x.io',
+        'role': 'ADMIN',
+        'name': ' Administrator ',
+        'swagger': 'http://localhost:8080/swagger/index.html',
+      });
+
+      expect(user.swagger, 'http://localhost:8080/swagger/index.html');
+      expect(user.displayName, 'Administrator');
+      expect(user.copyWith(name: null).displayName, 'admin');
+      expect(user.copyWith(name: '  ').displayName, 'admin');
     });
 
     test('ChangePasswordRequest serializes both passwords', () {

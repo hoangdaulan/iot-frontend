@@ -75,6 +75,15 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
   Future<void> filterByResult(DeviceActionResult? result) =>
       _load(page: 1, selectedResult: () => result);
 
+  /// Back to all devices, actions and results with no search.
+  Future<void> clear() => _load(
+    page: 1,
+    searchQuery: '',
+    selectedDeviceId: () => null,
+    selectedAction: () => null,
+    selectedResult: () => null,
+  );
+
   /// Fetches the history again, so new actions show up, and keeps the current filters.
   Future<void> refresh() => _load(page: state.actions.page);
 

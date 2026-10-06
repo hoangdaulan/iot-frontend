@@ -182,6 +182,7 @@ class _RegisterTab extends StatefulWidget {
 
 class _RegisterTabState extends State<_RegisterTab> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -190,6 +191,7 @@ class _RegisterTabState extends State<_RegisterTab> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -204,6 +206,19 @@ class _RegisterTabState extends State<_RegisterTab> {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Full name',
+                prefixIcon: Icon(SolarIconsOutline.userId, size: 20),
+              ),
+              textCapitalization: TextCapitalization.words,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return 'Please enter your full name';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _usernameController,
               decoration: const InputDecoration(
@@ -272,6 +287,7 @@ class _RegisterTabState extends State<_RegisterTab> {
                   if (!_formKey.currentState!.validate()) return;
                   final registered = await context.read<AuthCubit>().register(
                     RegisterRequest(
+                      name: _nameController.text.trim(),
                       username: _usernameController.text.trim(),
                       email: _emailController.text.trim(),
                       password: _passwordController.text,

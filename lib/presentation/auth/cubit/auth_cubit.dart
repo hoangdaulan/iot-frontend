@@ -73,6 +73,9 @@ class AuthCubit extends AuthCubitBase<AuthState> {
     }
   }
 
+  /// Replaces the signed-in user's profile after it was edited, so every screen shows it.
+  void updateUser(User user) => emit(state.copyWith(user: user));
+
   void updateUsername(String username) {
     emit(state.copyWith(username: username));
   }

@@ -113,6 +113,8 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               SizedBox(
                 width: 140,
                 child: DropdownButtonFormField<DeviceActionType?>(
+                  // Rebuilt on change so Clear filter can reset the selection.
+                  key: ValueKey(state.selectedAction),
                   initialValue: state.selectedAction,
                   decoration: const InputDecoration(labelText: 'Action', isDense: true),
                   items: [
@@ -131,6 +133,7 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
               SizedBox(
                 width: 140,
                 child: DropdownButtonFormField<DeviceActionResult?>(
+                  key: ValueKey(state.selectedResult),
                   initialValue: state.selectedResult,
                   decoration: const InputDecoration(labelText: 'Status', isDense: true),
                   items: [
@@ -147,10 +150,13 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                   onChanged: cubit.filterByResult,
                 ),
               ),
-              FilledButton.icon(
-                onPressed: cubit.refresh,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
+              OutlinedButton.icon(
+                onPressed: () {
+                  _searchController.clear();
+                  cubit.clear();
+                },
+                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                label: const Text('Clear filter'),
               ),
             ],
           ),

@@ -33,17 +33,6 @@ class AppCubit extends Cubit<AppState> {
   /// Shows the profile of the user [AuthCubit] signed in.
   void setUser(User user) => emit(state.copyWith(user: user));
 
-  // Profile edits are local only until a profile update endpoint exists.
-  void updatePhone(String phone) => _updateUser((user) => user.copyWith(phone: phone));
-  void updateGithub(String github) => _updateUser((user) => user.copyWith(github: github));
-  void updateFigma(String figma) => _updateUser((user) => user.copyWith(figma: figma));
-
-  void _updateUser(User Function(User user) update) {
-    final user = state.user;
-    if (user == null) return;
-    emit(state.copyWith(user: update(user)));
-  }
-
   Future<void> clear() async {
     emit(const AppState());
   }

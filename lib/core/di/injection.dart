@@ -23,6 +23,7 @@ import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
 import 'package:gp1/presentation/change_password/cubit/change_password_cubit.dart';
 import 'package:gp1/presentation/control_history/cubit/control_history_cubit.dart';
 import 'package:gp1/presentation/dashboard/cubit/dashboard_cubit.dart';
+import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
 import 'package:gp1/presentation/sensors/cubit/sensors_cubit.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -65,6 +66,9 @@ void configureDependencies() {
 
   // App & Features
   getIt.registerFactory<AppCubit>(() => AppCubit());
+  getIt.registerFactory<ProfileCubit>(
+    () => ProfileCubit(getIt<AuthRepository>(), getIt<AuthCubit>()),
+  );
   getIt.registerFactory<ChangePasswordCubit>(() => ChangePasswordCubit(getIt<AuthRepository>()));
   getIt.registerFactory<DashboardCubit>(
     () => DashboardCubit(getIt<SensorRepository>(), getIt<DeviceRepository>()),

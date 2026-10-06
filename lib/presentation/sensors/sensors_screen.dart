@@ -92,7 +92,10 @@ class _SensorsViewState extends State<SensorsView> {
                     for (final field in SensorSearchField.values)
                       DropdownMenuItem(value: field, child: Text(field.label)),
                   ],
-                  onChanged: (field) => setState(() => _field = field ?? SensorSearchField.all),
+                  onChanged: (field) {
+                    setState(() => _field = field ?? SensorSearchField.all);
+                    _search();
+                  },
                 ),
               ),
               // ── Query ──
@@ -106,14 +109,9 @@ class _SensorsViewState extends State<SensorsView> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                   textInputAction: TextInputAction.search,
+                  // Dropdown changes filter at once; the text is applied on Enter.
                   onFieldSubmitted: (_) => _search(),
                 ),
-              ),
-              // ── Search ──
-              FilledButton.icon(
-                onPressed: _search,
-                icon: const Icon(Icons.search, size: 18),
-                label: const Text('Search'),
               ),
               // ── Clear ──
               OutlinedButton.icon(

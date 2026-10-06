@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
+import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
 import 'package:gp1/presentation/profile/widgets/profile_action_section.dart';
 import 'package:gp1/presentation/profile/widgets/profile_footer.dart';
 import 'package:gp1/presentation/profile/widgets/profile_user_section.dart';
@@ -9,10 +13,21 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: MyAppBar(title: Text('Account')),
-      body: CustomScrollView(
-        slivers: [ProfileUserSection(), ProfileActionSection(), ProfileFooter()],
+    return BlocProvider(
+      create: (_) => getIt<ProfileCubit>(),
+      child: BlocListener<ProfileCubit, ProfileState>(
+        listener: (context, state) {
+          if (state.message case final message?) {
+            context.showSnackBar(message, type: SnackBarType.success);
+          }
+          context.handleFailure(state.failure);
+        },
+        child: const Scaffold(
+          appBar: MyAppBar(title: Text('Account')),
+          body: CustomScrollView(
+            slivers: [ProfileUserSection(), ProfileActionSection(), ProfileFooter()],
+          ),
+        ),
       ),
     );
   }

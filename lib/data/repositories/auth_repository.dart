@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/models/dto/change_password_request.dart';
 import 'package:gp1/data/models/dto/login_request.dart';
@@ -21,6 +23,10 @@ abstract interface class AuthRepository {
 
   /// `PATCH /api/auth/profile`
   Future<Result<User>> updateProfile(UpdateProfileRequest request);
+
+  /// `POST /api/auth/avatar` (multipart field `file`, an image of at most 2 MB). Returns the user
+  /// with its new `avatar`, a path served by the backend (see `AppConfig.resolveUrl`).
+  Future<Result<User>> uploadAvatar({required Uint8List bytes, required String filename});
 
   /// `PATCH /api/auth/password`
   Future<Result<void>> changePassword(ChangePasswordRequest request);

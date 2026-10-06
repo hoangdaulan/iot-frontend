@@ -133,6 +133,40 @@ void main() {
     });
   });
 
+  group('ApiAuthRepository avatar', () {
+    test('uploadAvatar posts the image as the multipart field "file"', () async {
+      final backend = _FakeBackend(200, {
+        'id': 1,
+        'username': 'admin',
+        'email': 'a@x.io',
+        'role': 'ADMIN',
+        'avatar': '/uploads/avatars/1-ab12.png',
+      });
+      final png = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3]);
+
+      final result = await ApiAuthRepository(
+        _dio(backend),
+      ).uploadAvatar(bytes: png, filename: 'me.png');
+
+      expect(backend.request?.method, 'POST');
+      expect(backend.request?.path, '/api/auth/avatar');
+      final form = backend.requestBody as FormData;
+      expect(form.files.single.key, 'file');
+      expect(form.files.single.value.filename, 'me.png');
+      expect(form.files.single.value.contentType?.mimeType, 'image/png');
+      expect(result.dataOrNull?.avatar, '/uploads/avatars/1-ab12.png');
+    });
+
+    test('a rejected image is a failure with the backend message', () async {
+      final result = await ApiAuthRepository(
+        _dio(_FakeBackend(400, {'message': 'Avatar must be a PNG, JPEG, GIF or WebP image'})),
+      ).uploadAvatar(bytes: Uint8List.fromList([1, 2, 3]), filename: 'x.txt');
+
+      expect(result, isA<Failure>());
+      expect((result as Failure).message, 'Avatar must be a PNG, JPEG, GIF or WebP image');
+    });
+  });
+
   group('ApiDeviceRepository', () {
     test('getDevices parses the device list', () async {
       final backend = _FakeBackend(200, [

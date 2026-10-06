@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:gp1/core/base/local_data_base.dart';
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/mock/mock_users.dart';
@@ -81,6 +83,14 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<Result<User>> updateProfile(UpdateProfileRequest request) async => profileResult;
+
+  Uint8List? lastAvatar;
+
+  @override
+  Future<Result<User>> uploadAvatar({required Uint8List bytes, required String filename}) async {
+    lastAvatar = bytes;
+    return profileResult;
+  }
 
   @override
   Future<Result<void>> changePassword(ChangePasswordRequest request) async => const Success(null);

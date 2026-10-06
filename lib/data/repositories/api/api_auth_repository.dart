@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/models/dto/change_password_request.dart';
@@ -9,6 +11,7 @@ import 'package:gp1/data/models/dto/update_profile_request.dart';
 import 'package:gp1/data/models/user.dart';
 import 'package:gp1/data/remote/api_failure.dart';
 import 'package:gp1/data/repositories/auth_repository.dart';
+import 'package:mime/mime.dart';
 
 class ApiAuthRepository implements AuthRepository {
   ApiAuthRepository(this._dio);
@@ -38,6 +41,25 @@ class ApiAuthRepository implements AuthRepository {
     final res = await _dio.patch<Map<String, dynamic>>('/api/auth/profile', data: request.toJson());
     return User.fromJson(res.data!);
   });
+
+  @override
+  Future<Result<User>> uploadAvatar({required Uint8List bytes, required String filename}) =>
+      guardRequest(() async {
+        final res = await _dio.post<Map<String, dynamic>>(
+          '/api/auth/avatar',
+          data: FormData.fromMap({
+            'file': MultipartFile.fromBytes(
+              bytes,
+              filename: filename,
+              contentType: DioMediaType.parse(
+                lookupMimeType(filename, headerBytes: bytes) ?? 'image/png',
+              ),
+            ),
+          }),
+          options: Options(contentType: Headers.multipartFormDataContentType),
+        );
+        return User.fromJson(res.data!);
+      });
 
   @override
   Future<Result<void>> changePassword(ChangePasswordRequest request) => guardRequest(() async {
