@@ -24,7 +24,7 @@ void main() {
     expect(series.of(SensorType.light).readings, isEmpty);
   });
 
-  test('latestValue and trend come from the last two readings', () {
+  test('latestValue is the last reading', () {
     final series = SensorSeries.group([
       _reading(SensorType.light, 500, 0),
       _reading(SensorType.light, 520.3, 10),
@@ -32,14 +32,9 @@ void main() {
     ]).of(SensorType.light);
 
     expect(series.latestValue, 512.2);
-    expect(series.trend, -8.1);
   });
 
-  test('empty and single-reading series fall back to zero', () {
+  test('an empty series falls back to zero', () {
     expect(const SensorSeries(type: SensorType.humidity).latestValue, 0.0);
-    expect(
-      SensorSeries.group([_reading(SensorType.humidity, 61, 0)]).of(SensorType.humidity).trend,
-      0.0,
-    );
   });
 }

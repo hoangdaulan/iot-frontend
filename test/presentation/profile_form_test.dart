@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gp1/core/base/result.dart';
-import 'package:gp1/data/mock/mock_users.dart';
 import 'package:gp1/data/models/dto/update_profile_request.dart';
 import 'package:gp1/data/models/user.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
@@ -10,6 +9,7 @@ import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
 import 'package:gp1/presentation/profile/widgets/profile_action_section.dart';
 
 import '../helpers/fakes.dart';
+import '../helpers/fixtures.dart';
 
 class _Repository extends FakeAuthRepository {
   UpdateProfileRequest? lastUpdate;
@@ -25,7 +25,7 @@ void main() {
   Future<(_Repository, AuthCubit)> pump(WidgetTester tester, {bool withUser = true}) async {
     final repository = _Repository();
     final auth = AuthCubit(repository, InMemoryLocalDataBase());
-    if (withUser) auth.updateUser(mockUser);
+    if (withUser) auth.updateUser(sampleUser);
     await tester.binding.setSurfaceSize(const Size(800, 1600));
     await tester.pumpWidget(
       MaterialApp(
@@ -46,13 +46,13 @@ void main() {
     await pump(tester);
 
     for (final (label, value) in [
-      ('Username', mockUser.username),
-      ('Email', mockUser.email),
-      ('Full name', mockUser.name!),
-      ('Phone', mockUser.phone!),
-      ('GitHub', mockUser.github!),
-      ('Figma', mockUser.figma!),
-      ('Swagger', mockUser.swagger!),
+      ('Username', sampleUser.username),
+      ('Email', sampleUser.email),
+      ('Full name', sampleUser.name!),
+      ('Phone', sampleUser.phone!),
+      ('GitHub', sampleUser.github!),
+      ('Figma', sampleUser.figma!),
+      ('Swagger', sampleUser.swagger!),
     ]) {
       expect(find.widgetWithText(TextFormField, value), findsOneWidget, reason: label);
     }
@@ -60,7 +60,7 @@ void main() {
       tester
           .widget<EditableText>(
             find.descendant(
-              of: find.widgetWithText(TextFormField, mockUser.username),
+              of: find.widgetWithText(TextFormField, sampleUser.username),
               matching: find.byType(EditableText),
             ),
           )
@@ -71,7 +71,7 @@ void main() {
       tester
           .widget<EditableText>(
             find.descendant(
-              of: find.widgetWithText(TextFormField, mockUser.email),
+              of: find.widgetWithText(TextFormField, sampleUser.email),
               matching: find.byType(EditableText),
             ),
           )
@@ -82,7 +82,7 @@ void main() {
       tester
           .widget<EditableText>(
             find.descendant(
-              of: find.widgetWithText(TextFormField, mockUser.name!),
+              of: find.widgetWithText(TextFormField, sampleUser.name!),
               matching: find.byType(EditableText),
             ),
           )
@@ -97,7 +97,7 @@ void main() {
     expect(tester.widget<FilledButton>(save).onPressed, isNull);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, mockUser.swagger!),
+      find.widgetWithText(TextFormField, sampleUser.swagger!),
       'http://new/swagger',
     );
     await tester.pump();
@@ -111,13 +111,13 @@ void main() {
 
   testWidgets('fills the form when the profile arrives after the screen is shown', (tester) async {
     final (_, auth) = await pump(tester, withUser: false);
-    expect(find.widgetWithText(TextFormField, mockUser.swagger!), findsNothing);
+    expect(find.widgetWithText(TextFormField, sampleUser.swagger!), findsNothing);
 
-    auth.updateUser(mockUser);
+    auth.updateUser(sampleUser);
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(TextFormField, mockUser.swagger!), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, mockUser.name!), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, mockUser.username), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, sampleUser.swagger!), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, sampleUser.name!), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, sampleUser.username), findsOneWidget);
   });
 }

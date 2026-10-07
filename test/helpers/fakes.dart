@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:gp1/core/base/local_data_base.dart';
 import 'package:gp1/core/base/result.dart';
-import 'package:gp1/data/mock/mock_users.dart';
 import 'package:gp1/data/models/dto/change_password_request.dart';
 import 'package:gp1/data/models/dto/login_request.dart';
 import 'package:gp1/data/models/dto/login_response.dart';
@@ -12,6 +11,8 @@ import 'package:gp1/data/models/dto/update_profile_request.dart';
 import 'package:gp1/data/models/dto/user_summary.dart';
 import 'package:gp1/data/models/user.dart';
 import 'package:gp1/data/repositories/auth_repository.dart';
+
+import 'fixtures.dart';
 
 class InMemoryLocalDataBase implements LocalDataBase {
   InMemoryLocalDataBase({this.accessToken, this.refreshToken});
@@ -52,7 +53,7 @@ class FakeAuthRepository implements AuthRepository {
       user: UserSummary(id: 1, username: 'admin', role: UserRole.admin),
     ),
   );
-  Result<User> profileResult = const Success(mockUser);
+  Result<User> profileResult = const Success(sampleUser);
   Result<RegisterResponse> registerResult = const Success(
     RegisterResponse(
       user: UserSummary(id: 2, username: 'user01', role: UserRole.user),

@@ -53,6 +53,7 @@ class DashboardView extends StatelessWidget {
         final temperature = state.series.of(SensorType.temperature);
         final humidity = state.series.of(SensorType.humidity);
         final light = state.series.of(SensorType.light);
+        final origin = state.windowStart ?? DateTime.now();
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -72,7 +73,6 @@ class DashboardView extends StatelessWidget {
                     unit: '°C',
                     icon: Icons.thermostat,
                     color: ColorName.red,
-                    trend: temperature.trend,
                   ),
                   SensorStatCard(
                     title: 'Humidity',
@@ -80,7 +80,6 @@ class DashboardView extends StatelessWidget {
                     unit: '%',
                     icon: Icons.water_drop,
                     color: ColorName.blue,
-                    trend: humidity.trend,
                   ),
                   SensorStatCard(
                     title: 'Light',
@@ -88,7 +87,6 @@ class DashboardView extends StatelessWidget {
                     unit: 'lux',
                     icon: Icons.light_mode,
                     color: ColorName.yellow,
-                    trend: light.trend,
                   ),
                 ],
               ),
@@ -96,7 +94,7 @@ class DashboardView extends StatelessWidget {
               const SizedBox(height: 24),
 
               // ── Section Title: Today's Charts ──
-              const _SectionTitle(title: "Today's Trend", icon: Icons.show_chart),
+              const _SectionTitle(title: 'Last 24 Hours', icon: Icons.show_chart),
               const SizedBox(height: 12),
 
               // ── Charts ──
@@ -106,19 +104,24 @@ class DashboardView extends StatelessWidget {
                     title: 'Temperature',
                     unit: '°C',
                     color: ColorName.red,
-                    dataPoints: daySpots(temperature.readings),
+                    yMarginFraction: 0.5,
+                    yMinMargin: 2,
+                    origin: origin,
+                    dataPoints: trendSpots(temperature.readings, origin: origin),
                   ),
                   SensorChart(
                     title: 'Humidity',
                     unit: '%',
                     color: ColorName.blue,
-                    dataPoints: daySpots(humidity.readings),
+                    origin: origin,
+                    dataPoints: trendSpots(humidity.readings, origin: origin),
                   ),
                   SensorChart(
                     title: 'Light',
                     unit: 'lux',
                     color: ColorName.yellow,
-                    dataPoints: daySpots(light.readings),
+                    origin: origin,
+                    dataPoints: trendSpots(light.readings, origin: origin),
                   ),
                 ],
               ),
@@ -137,7 +140,7 @@ class DashboardView extends StatelessWidget {
                       title: device.name,
                       subtitle: device.type,
                       icon: Icons.light_mode,
-                      color: ColorName.yellow,
+                      color: _deviceColor(device.id),
                       isOn: device.isOn,
                       onToggle: (isOn) =>
                           context.read<DashboardCubit>().setDeviceOn(device.id, isOn),
@@ -153,6 +156,13 @@ class DashboardView extends StatelessWidget {
     );
   }
 }
+
+/// Accent color of a device card: LED 1 red, LED 2 yellow, LED 3 blue.
+Color _deviceColor(int deviceId) => switch (deviceId) {
+  1 => ColorName.red,
+  3 => ColorName.blue,
+  _ => ColorName.yellow,
+};
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title, required this.icon});

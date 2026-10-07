@@ -1,8 +1,7 @@
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
 
-/// Chronological readings of one sensor type, with the latest value and short-term trend that
-/// the stat cards display.
+/// Chronological readings of one sensor type, with the latest value that the stat cards display.
 class SensorSeries {
   const SensorSeries({required this.type, this.readings = const []});
 
@@ -24,11 +23,6 @@ class SensorSeries {
   }
 
   double get latestValue => readings.isNotEmpty ? readings.last.value : 0.0;
-
-  /// Difference between the last two readings, rounded to one decimal.
-  double get trend => readings.length >= 2
-      ? double.parse((readings.last.value - readings[readings.length - 2].value).toStringAsFixed(1))
-      : 0.0;
 }
 
 extension SensorSeriesMapExtension on Map<SensorType, SensorSeries> {

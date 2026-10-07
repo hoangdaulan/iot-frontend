@@ -8,9 +8,6 @@ class AppConfig {
   );
   static final String signatureSecret = const String.fromEnvironment('SIGNATURE_SECRET');
 
-  /// `--dart-define=USE_MOCK_API=true` runs the app on the in-memory mock repositories.
-  static const bool useMockApi = bool.fromEnvironment('USE_MOCK_API');
-
   /// Turns a path the backend returns (an avatar is `/uploads/avatars/...`) into a full URL;
   /// absolute links are returned as they are.
   static String resolveUrl(String pathOrUrl) {

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:gp1/app/config/app_config.dart';
 import 'package:get_it/get_it.dart';
 import 'package:gp1/core/auth/auth_cubit_base.dart';
 import 'package:gp1/core/auth/auth_notifier.dart';
@@ -13,10 +12,6 @@ import 'package:gp1/data/repositories/api/api_device_repository.dart';
 import 'package:gp1/data/repositories/api/api_sensor_repository.dart';
 import 'package:gp1/data/repositories/auth_repository.dart';
 import 'package:gp1/data/repositories/device_repository.dart';
-import 'package:gp1/data/repositories/mock/mock_auth_repository.dart';
-import 'package:gp1/data/repositories/mock/mock_device_repository.dart';
-import 'package:gp1/data/repositories/mock/mock_sensor_repository.dart';
-import 'package:gp1/data/repositories/mock_history_device_repository.dart';
 import 'package:gp1/data/repositories/sensor_repository.dart';
 import 'package:gp1/presentation/app/cubit/app_cubit.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
@@ -40,20 +35,11 @@ void configureDependencies() {
   // Token storage (also read by AuthInterceptor)
   getIt.registerLazySingleton<LocalDataBase>(() => SharedPreferencesLocalDataBase());
 
-  // Repositories: the REST backend, or in-memory mocks with --dart-define=USE_MOCK_API=true
-  if (AppConfig.useMockApi) {
-    getIt.registerLazySingleton<AuthRepository>(() => MockAuthRepository());
-    getIt.registerLazySingleton<SensorRepository>(() => MockSensorRepository());
-    getIt.registerLazySingleton<DeviceRepository>(() => MockDeviceRepository());
-  } else {
-    getIt.registerLazySingleton<Dio>(() => createApiClient(talker: getIt<Talker>()));
-    getIt.registerLazySingleton<AuthRepository>(() => ApiAuthRepository(getIt<Dio>()));
-    getIt.registerLazySingleton<SensorRepository>(() => ApiSensorRepository(getIt<Dio>()));
-    // The control history is mock data, not the database; devices and commands use the backend.
-    getIt.registerLazySingleton<DeviceRepository>(
-      () => MockHistoryDeviceRepository(ApiDeviceRepository(getIt<Dio>()), MockDeviceRepository()),
-    );
-  }
+  // Repositories: everything comes from the REST backend.
+  getIt.registerLazySingleton<Dio>(() => createApiClient(talker: getIt<Talker>()));
+  getIt.registerLazySingleton<AuthRepository>(() => ApiAuthRepository(getIt<Dio>()));
+  getIt.registerLazySingleton<SensorRepository>(() => ApiSensorRepository(getIt<Dio>()));
+  getIt.registerLazySingleton<DeviceRepository>(() => ApiDeviceRepository(getIt<Dio>()));
 
   // Auth
   getIt.registerSingleton<AuthCubit>(AuthCubit(getIt<AuthRepository>(), getIt<LocalDataBase>()));

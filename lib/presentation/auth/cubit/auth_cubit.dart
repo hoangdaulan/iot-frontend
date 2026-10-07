@@ -1,7 +1,6 @@
 import 'package:gp1/core/auth/auth_cubit_base.dart';
 import 'package:gp1/core/base/local_data_base.dart';
 import 'package:gp1/core/base/result.dart';
-import 'package:gp1/data/mock/mock_users.dart';
 import 'package:gp1/data/models/dto/login_request.dart';
 import 'package:gp1/data/models/dto/login_response.dart';
 import 'package:gp1/data/models/dto/register_request.dart';
@@ -19,8 +18,8 @@ class AuthState extends AuthStateBase {
   const AuthState({
     super.isAuthenticated = false,
     this.failure,
-    this.username = mockLoginUsername,
-    this.password = mockLoginPassword,
+    this.username = '',
+    this.password = '',
     this.user,
   });
 

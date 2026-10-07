@@ -9,6 +9,7 @@ class SensorHistoryQuery {
     this.from,
     this.to,
     this.value,
+    this.bucket,
     this.searchField,
     this.searchQuery,
     this.utcOffsetMinutes,
@@ -24,6 +25,10 @@ class SensorHistoryQuery {
 
   /// Exact measured value to search for.
   final double? value;
+
+  /// Averages each sensor over windows of this length (whole minutes); every returned entry is
+  /// then a window, stamped with its start.
+  final Duration? bucket;
 
   /// What [searchQuery] is matched against. All: any of the others; sensor: id or name; a sensor
   /// type: values starting with the typed number (28 is 28.0 - 28.99); time: a leading part of
@@ -44,6 +49,7 @@ class SensorHistoryQuery {
     if (type != null) 'type': type!.name,
     if (from != null || to != null) 'timeRange': '${_format(from)}/${_format(to)}',
     if (value != null) 'value': '$value',
+    if (bucket != null) 'bucket': '${bucket!.inMinutes}m',
     if (searchField != null && searchField != SensorSearchField.all)
       'filter': searchField!.wireValue,
     if ((searchQuery?.trim() ?? '').isNotEmpty) 'q': searchQuery!.trim(),

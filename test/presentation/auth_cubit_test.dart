@@ -1,12 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gp1/core/base/result.dart';
+import 'package:gp1/core/base/local_data_base.dart';
 import 'package:gp1/data/local/shared_preferences_local_data_base.dart';
-import 'package:gp1/data/mock/mock_users.dart';
 import 'package:gp1/data/models/dto/register_request.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/fakes.dart';
+import '../helpers/fixtures.dart';
+
+/// A cubit with the credentials already typed in, which a login needs.
+AuthCubit _cubitWithCredentials(FakeAuthRepository repository, LocalDataBase storage) =>
+    AuthCubit(repository, storage)
+      ..updateUsername('admin')
+      ..updatePassword('123456');
 
 void main() {
   late FakeAuthRepository repository;
@@ -32,7 +39,7 @@ void main() {
       await cubit.init();
 
       expect(cubit.state.isAuthenticated, isTrue);
-      expect(cubit.state.user, mockUser);
+      expect(cubit.state.user, sampleUser);
       expect(storage.accessToken, 'saved-jwt');
     });
 
@@ -65,20 +72,21 @@ void main() {
   group('login', () {
     test('saves the access token, loads the profile and signs in', () async {
       final storage = InMemoryLocalDataBase();
-      final cubit = AuthCubit(repository, storage);
+      final cubit = _cubitWithCredentials(repository, storage);
 
       await cubit.login();
 
-      expect(repository.lastLogin?.username, mockLoginUsername);
+      expect(repository.lastLogin?.username, 'admin');
+      expect(repository.lastLogin?.password, '123456');
       expect(storage.accessToken, 'jwt-token');
       expect(cubit.state.isAuthenticated, isTrue);
-      expect(cubit.state.user, mockUser);
+      expect(cubit.state.user, sampleUser);
     });
 
     test('does not save a token when the credentials are rejected', () async {
       final storage = InMemoryLocalDataBase();
       repository.loginResult = const Failure(code: 401, message: 'Invalid email or password');
-      final cubit = AuthCubit(repository, storage);
+      final cubit = _cubitWithCredentials(repository, storage);
 
       await cubit.login();
 
@@ -87,9 +95,18 @@ void main() {
       expect(cubit.state.failure?.message, 'Invalid email or password');
     });
 
+    test('asks for both fields instead of calling the backend when they are empty', () async {
+      final cubit = AuthCubit(repository, InMemoryLocalDataBase());
+
+      await cubit.login();
+
+      expect(repository.lastLogin, isNull);
+      expect(cubit.state.isAuthenticated, isFalse);
+    });
+
     test('persists only the token, never the password', () async {
       SharedPreferences.setMockInitialValues({});
-      final cubit = AuthCubit(repository, SharedPreferencesLocalDataBase());
+      final cubit = _cubitWithCredentials(repository, SharedPreferencesLocalDataBase());
 
       await cubit.login();
 
@@ -101,7 +118,7 @@ void main() {
 
   test('logout removes the saved token', () async {
     final storage = InMemoryLocalDataBase();
-    final cubit = AuthCubit(repository, storage);
+    final cubit = _cubitWithCredentials(repository, storage);
     await cubit.login();
 
     await cubit.logout();

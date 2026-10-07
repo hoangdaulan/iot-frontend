@@ -13,8 +13,11 @@ import 'package:gp1/presentation/sensors/models/sensor_series.dart';
 class DashboardState {
   final bool isLoading;
 
-  /// Today's readings per sensor type.
+  /// The latest 24 hours of readings per sensor type, in 5-minute averages.
   final Map<SensorType, SensorSeries> series;
+
+  /// Start of the window the charts show; their x-axis counts hours from here.
+  final DateTime? windowStart;
 
   /// The controllable devices (LEDs) from the `devices` table, ordered by id.
   final List<Device> devices;
@@ -23,20 +26,22 @@ class DashboardState {
   const DashboardState({
     this.isLoading = true,
     this.series = const {},
+    this.windowStart,
     this.devices = const [],
     this.failure,
   });
 
-
   DashboardState copyWith({
     bool? isLoading,
     Map<SensorType, SensorSeries>? series,
+    DateTime? windowStart,
     List<Device>? devices,
     Failure? failure,
   }) {
     return DashboardState(
       isLoading: isLoading ?? this.isLoading,
       series: series ?? this.series,
+      windowStart: windowStart ?? this.windowStart,
       devices: devices ?? this.devices,
       failure: failure,
     );
@@ -52,14 +57,15 @@ class DashboardCubit extends Cubit<DashboardState> {
   var _isCommandInFlight = false;
   var _isRefreshing = false;
 
-  /// Loads the device list and today's history for the charts, then the latest values and device
-  /// statuses.
+  /// Loads the device list and the last 24 hours of history for the charts, averaged over
+  /// 5-minute windows, then the latest values and device statuses.
   Future<void> loadDashboard() async {
     final devicesResult = await _deviceRepository.getDevices();
-    final now = DateTime.now();
+    final windowStart = DateTime.now().subtract(AppConstants.chartWindow);
     final historyResult = await _sensorRepository.getSensorHistory(
       SensorHistoryQuery(
-        from: DateTime(now.year, now.month, now.day),
+        from: windowStart,
+        bucket: AppConstants.chartBucket,
         size: AppConstants.historyFetchSize,
       ),
     );
@@ -71,6 +77,7 @@ class DashboardCubit extends Cubit<DashboardState> {
         state.copyWith(
           isLoading: false,
           series: series,
+          windowStart: windowStart,
           devices: devicesResult.dataOrNull ?? state.devices,
         ),
         latestResult.dataOrNull,
@@ -127,7 +134,7 @@ class DashboardCubit extends Cubit<DashboardState> {
       device.id == deviceId ? device.copyWith(status: status) : device,
   ];
 
-  /// Appends readings newer than the last one shown per type, and takes the reported device
+  /// Adds readings newer than the last one shown per type, and takes the reported device
   /// statuses.
   DashboardState _withLatest(DashboardState current, LatestSensorDataResponse? latest) {
     if (latest == null) return current;
@@ -135,7 +142,15 @@ class DashboardCubit extends Cubit<DashboardState> {
     final readings = [for (final series in current.series.values) ...series.readings];
     for (final reading in latest.toReadings()) {
       final last = current.series.of(reading.type).readings.lastOrNull;
-      if (last == null || reading.timestamp.isAfter(last.timestamp)) readings.add(reading);
+      if (last == null || reading.timestamp.isAfter(last.timestamp)) {
+        // Inside the window of the last average the fresh value takes its place, so the chart
+        // does not collect a point per refresh.
+        if (last != null &&
+            reading.timestamp.difference(last.timestamp) < AppConstants.chartBucket) {
+          readings.remove(last);
+        }
+        readings.add(reading);
+      }
     }
     final statuses = {for (final device in latest.devices) device.id: device.status};
     return current.copyWith(

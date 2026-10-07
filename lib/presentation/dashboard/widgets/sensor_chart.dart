@@ -1,69 +1,81 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:gp1/core/utils/extensions/date_time_extension.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
 import 'package:gp1/generated/colors.gen.dart';
-import 'package:intl/intl.dart';
 
-/// Chart x for a time of day, in hours with the minutes and seconds as a fraction (13.5 = 13:30).
-/// Seconds matter: the ESP32 reports every few seconds, and readings that share an x would draw
-/// as vertical jumps and make a curved line loop.
-double dayHour(DateTime time) => time.hour + time.minute / 60 + time.second / 3600;
+/// Chart x for [time]: hours since [origin], with the minutes and seconds as a fraction. Counting
+/// from the start of the window, not the hour of day, keeps a 24-hour window that crosses
+/// midnight in order, and the seconds keep readings of one minute apart.
+double hoursSince(DateTime origin, DateTime time) => time.difference(origin).inSeconds / 3600;
 
-/// The points of [readings] for a chart whose x-axis is the hour of day.
-List<FlSpot> daySpots(Iterable<SensorReading> readings) => [
-  for (final reading in readings) FlSpot(dayHour(reading.timestamp), reading.value),
+/// The points of [readings] for a chart whose x-axis counts hours from [origin].
+List<FlSpot> trendSpots(Iterable<SensorReading> readings, {required DateTime origin}) => [
+  for (final reading in readings) FlSpot(hoursSince(origin, reading.timestamp), reading.value),
 ];
 
-/// `HH:mm` for an x of [dayHour].
-String formatDayHour(double hours) {
-  final totalMinutes = (hours * 60).round();
-  final hour = (totalMinutes ~/ 60) % 24;
-  final minute = totalMinutes % 60;
-  return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+/// The moment an x of [hoursSince] stands for.
+DateTime timeAt(DateTime origin, double hours) =>
+    origin.add(Duration(seconds: (hours * 3600).round()));
+
+/// The tooltip of a point: its date and time, then its value with the unit.
+String tooltipLabel(DateTime origin, FlSpot spot, String unit) =>
+    '${timeAt(origin, spot.x).toFormatString(pattern: 'dd/MM/yyyy HH:mm')}\n'
+    '${spot.y.toStringAsFixed(1)} $unit';
+
+/// The y-axis bounds around values from [minY] to [maxY]. Each side gets a margin of
+/// [marginFraction] of the data range, but at least [minMargin], so a line that barely moves is not
+/// stretched over the whole height and a line that moves a lot does not touch the edges. The lower
+/// bound never goes below zero.
+({double min, double max}) yAxisRange(
+  double minY,
+  double maxY, {
+  double marginFraction = 0.15,
+  double minMargin = 0,
+}) {
+  final range = maxY - minY;
+  final fallback = maxY == 0 ? 1.0 : maxY.abs() * 0.1;
+  final margin = range == 0
+      ? (fallback > minMargin ? fallback : minMargin)
+      : (range * marginFraction > minMargin ? range * marginFraction : minMargin);
+  return (min: minY - margin < 0 ? 0 : minY - margin, max: maxY + margin);
 }
 
+/// A line chart of one sensor. Its x-axis counts hours from [origin] (see [trendSpots]), shown as
+/// clock time; the tooltip shows the date and time of a point together with its value.
 class SensorChart extends StatelessWidget {
   const SensorChart({
     super.key,
     required this.title,
     required this.unit,
     required this.color,
+    required this.origin,
     this.dataPoints = const [],
-    this.readings,
-    this.formatPattern,
+    this.yMarginFraction = 0.15,
+    this.yMinMargin = 0,
   });
 
   final String title;
   final String unit;
   final Color color;
+
+  /// The moment x = 0 stands for.
+  final DateTime origin;
   final List<FlSpot> dataPoints;
-  final List<SensorReading>? readings;
-  final String? formatPattern;
+
+  /// Room above and below the data on the y-axis, as a fraction of the data range and as a floor
+  /// in the unit of the values. More room makes the line look softer. See [yAxisRange].
+  final double yMarginFraction;
+  final double yMinMargin;
 
   @override
   Widget build(BuildContext context) {
-    // If time-series readings are provided, use them; otherwise fallback to dataPoints
-    final isUsingReadings = readings != null;
-    final List<SensorReading> sortedReadings = isUsingReadings
-        ? (List<SensorReading>.from(readings!)..sort((a, b) => a.timestamp.compareTo(b.timestamp)))
-        : [];
-
-    final spots = isUsingReadings
-        ? List<FlSpot>.generate(
-            sortedReadings.length,
-            (index) => FlSpot(index.toDouble(), sortedReadings[index].value),
-          )
-        : dataPoints;
+    final spots = dataPoints;
 
     if (spots.isEmpty) {
-      return Container(
+      return _ChartCard(
+        color: color,
         height: 220,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: ColorName.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: ColorName.gray5),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -80,38 +92,23 @@ class SensorChart extends StatelessWidget {
 
     final minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
     final maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
-    final rangeY = maxY - minY;
-    final padding = rangeY == 0 ? (maxY == 0 ? 1.0 : maxY * 0.1) : rangeY * 0.15;
+    final yRange = yAxisRange(minY, maxY, marginFraction: yMarginFraction, minMargin: yMinMargin);
 
     final minX = spots.first.x;
     final maxX = spots.length > 1 ? spots.last.x : spots.first.x + 1;
     final rangeX = maxX - minX;
 
     // Both axes are labelled from the data actually shown, a quarter of the range apart.
-    final double bottomInterval = isUsingReadings
-        ? (rangeX / 4).clamp(1.0, double.infinity)
-        : (rangeX / 4).clamp(1 / 60, double.infinity);
-    // Whole numbers would repeat (27, 27, 27) when the values barely move.
-    final yDecimals = rangeY >= 5 ? 0 : 1;
+    final bottomInterval = (rangeX / 4).clamp(1 / 60, double.infinity);
+    // Whole numbers would repeat (27, 27, 27) when the axis barely spans a few units.
+    final axisSpan = yRange.max - yRange.min;
+    final yDecimals = axisSpan >= 5 ? 0 : 1;
+    final horizontalInterval = axisSpan / 4;
 
-    final double horizontalInterval = rangeY == 0 ? 1.0 : rangeY / 4;
+    const labelStyle = TextStyle(fontSize: 10, color: ColorName.labelSecondary);
 
-    final timeFormatter = DateFormat(formatPattern ?? 'dd/MM HH:mm');
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: ColorName.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColorName.gray5),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return _ChartCard(
+      color: color,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -133,12 +130,8 @@ class SensorChart extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 42,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toStringAsFixed(yDecimals),
-                          style: const TextStyle(fontSize: 10, color: ColorName.labelSecondary),
-                        );
-                      },
+                      getTitlesWidget: (value, meta) =>
+                          Text(value.toStringAsFixed(yDecimals), style: labelStyle),
                     ),
                   ),
                   bottomTitles: AxisTitles(
@@ -146,28 +139,13 @@ class SensorChart extends StatelessWidget {
                       showTitles: true,
                       reservedSize: 28,
                       interval: bottomInterval,
-                      getTitlesWidget: (value, meta) {
-                        if (isUsingReadings) {
-                          final idx = value.toInt();
-                          if (idx < 0 || idx >= sortedReadings.length) return const SizedBox();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              timeFormatter.format(sortedReadings[idx].timestamp),
-                              style: const TextStyle(fontSize: 10, color: ColorName.labelSecondary),
-                            ),
-                          );
-                        } else {
-                          if (value < 0 || value > 24) return const SizedBox();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              formatDayHour(value),
-                              style: const TextStyle(fontSize: 10, color: ColorName.labelSecondary),
-                            ),
-                          );
-                        }
-                      },
+                      getTitlesWidget: (value, meta) => Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          timeAt(origin, value).toFormatString(pattern: 'HH:mm'),
+                          style: labelStyle,
+                        ),
+                      ),
                     ),
                   ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -176,8 +154,8 @@ class SensorChart extends StatelessWidget {
                 borderData: FlBorderData(show: false),
                 minX: minX,
                 maxX: maxX,
-                minY: (minY - padding).clamp(0, double.infinity),
-                maxY: maxY + padding,
+                minY: yRange.min,
+                maxY: yRange.max,
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots,
@@ -201,30 +179,17 @@ class SensorChart extends StatelessWidget {
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (_) => ColorName.labelPrimary,
-                    getTooltipItems: (touchedSpots) => touchedSpots.map((spot) {
-                      if (isUsingReadings) {
-                        final idx = spot.x.toInt();
-                        if (idx >= 0 && idx < sortedReadings.length) {
-                          final ts = timeFormatter.format(sortedReadings[idx].timestamp);
-                          return LineTooltipItem(
-                            '$ts\n${spot.y.toStringAsFixed(1)} $unit',
-                            const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          );
-                        }
-                      }
-                      return LineTooltipItem(
-                        '${formatDayHour(spot.x)}\n${spot.y.toStringAsFixed(1)} $unit',
-                        const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                    getTooltipItems: (touchedSpots) => [
+                      for (final spot in touchedSpots)
+                        LineTooltipItem(
+                          tooltipLabel(origin, spot, unit),
+                          const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      );
-                    }).toList(),
+                    ],
                   ),
                 ),
               ),
@@ -233,6 +198,36 @@ class SensorChart extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The white rounded card both the empty and the filled chart sit in.
+class _ChartCard extends StatelessWidget {
+  const _ChartCard({required this.color, required this.child, this.height});
+
+  final Color color;
+  final double? height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorName.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ColorName.gray5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

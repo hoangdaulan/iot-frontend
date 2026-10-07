@@ -3,18 +3,18 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gp1/app/config/app_config.dart';
 import 'package:gp1/core/base/result.dart';
-import 'package:gp1/data/mock/mock_users.dart';
 import 'package:gp1/data/models/dto/update_profile_request.dart';
 import 'package:gp1/data/models/user.dart';
 import 'package:gp1/presentation/auth/cubit/auth_cubit.dart';
 import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
 
 import '../helpers/fakes.dart';
+import '../helpers/fixtures.dart';
 
 /// Records the update it receives and answers with the user it would produce.
 class _ProfileRepository extends FakeAuthRepository {
   UpdateProfileRequest? lastUpdate;
-  Result<User> updateResult = Success(mockUser.copyWith(name: 'New Name'));
+  Result<User> updateResult = Success(sampleUser.copyWith(name: 'New Name'));
 
   @override
   Future<Result<User>> updateProfile(UpdateProfileRequest request) async {
@@ -76,7 +76,9 @@ void main() {
   });
 
   test('load fetches the profile and gives it to AuthCubit', () async {
-    repository.profileResult = Success(mockUser.copyWith(name: 'Stored Name', swagger: 'http://s'));
+    repository.profileResult = Success(
+      sampleUser.copyWith(name: 'Stored Name', swagger: 'http://s'),
+    );
 
     await cubit.load();
 
@@ -122,7 +124,7 @@ void main() {
   });
 
   test('uploadAvatar sends the image and updates the user', () async {
-    repository.profileResult = Success(mockUser.copyWith(avatar: '/uploads/avatars/1-ab.png'));
+    repository.profileResult = Success(sampleUser.copyWith(avatar: '/uploads/avatars/1-ab.png'));
 
     await cubit.uploadAvatar(Uint8List.fromList([1, 2, 3]), 'me.png');
 

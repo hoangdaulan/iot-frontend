@@ -7,19 +7,18 @@ How business data is typed in the Flutter app, how it flows into state, and whic
 ```
 UI / Widget  →  Cubit state  →  Repository (interface)  →  Typed model / DTO
                                      │
-                 Api*Repository (Dio, default)  |  Mock*Repository (USE_MOCK_API=true, tests)
+                 Api*Repository (Dio, the only implementations)
 ```
 
 - **Models** (`lib/data/models/`): immutable `freezed` classes.
 - **DTOs** (`lib/data/models/dto/`): request bodies, response envelopes and query parameters.
-- **Repositories** (`lib/data/repositories/`): interfaces returning `Result<T>`. The `api/` subfolder holds the HTTP implementations; `mock/` holds in-memory ones.
+- **Repositories** (`lib/data/repositories/`): interfaces returning `Result<T>`. The `api/` subfolder holds the HTTP implementations.
 - **HTTP**: `lib/data/remote/api_client.dart` (Dio + `AuthInterceptor` + Talker logging in debug) and `api_failure.dart` (error mapping).
 - **Constants** (`lib/app/constants/app_constants.dart`): `deviceId = 1`, and `historyFetchSize = 5000` (see §7).
-- **DI** (`lib/core/di/injection.dart`): picks API or mock repositories from `AppConfig.useMockApi`.
+- **DI** (`lib/core/di/injection.dart`): registers the API repositories (auth, sensors, devices). There is no mock data in the app.
 
 ```sh
-fvm flutter run -d chrome --dart-define=BASE_URL=http://localhost:8080   # real backend (default URL)
-fvm flutter run -d chrome --dart-define=USE_MOCK_API=true                # no backend needed
+fvm flutter run -d chrome --dart-define=BASE_URL=http://localhost:8080   # backend URL (this is the default)
 fvm dart run build_runner build --delete-conflicting-outputs             # after changing a model
 ```
 
@@ -147,13 +146,13 @@ There's no `GET /api/devices` and no device-scoped latest endpoint.
 | `SensorsCubit` / `SensorsState` | `PagedList<SensorReading>`, per-type `series` | filters, precision, search, `failure` |
 | `ControlHistoryCubit` / `ControlHistoryState` | `PagedList<DeviceActionHistoryItem>` | action/result/date filters, search, `failure` |
 
-**Dashboard.** Loading calls today's history (`from: startOfToday`) plus `latest`, which supplies the LED status and the newest values. **Refresh** calls `latest` again and appends newer readings. The **LED switch** sends `ON`/`OFF` and changes only on `SUCCESS`; on `FAILED`, `TIMEOUT` or an error it keeps its state and shows the message. A second toggle is ignored while a command is in flight.
+**Dashboard.** Loading calls the last 24 hours of history (`from: now − 24 h`, `bucket: 5m`, so the backend returns 5-minute averages) plus `latest`, which supplies the LED status and the newest values. **Refresh** calls `latest` again and appends newer readings. The **LED switch** sends `ON`/`OFF` and changes only on `SUCCESS`; on `FAILED`, `TIMEOUT` or an error it keeps its state and shows the message. A second toggle is ignored while a command is in flight.
 
 ---
 
-## 7. Mock mode
+## 7. Test fakes
 
-`--dart-define=USE_MOCK_API=true` uses `lib/data/mock/`: one `mockDevice` (ESP32 LED, initially OFF), whose `mockLedStatus` is shared so Refresh reflects commands; three sensors; generated today/history/latest readings; and 200 history items. Tests use these mocks plus scripted fakes.
+The app has no mock data and no mock mode: every screen reads from the backend. Tests use fakes kept out of `lib/`, in `test/helpers/`: `FakeAuthRepository`, `FakeSensorRepository` (24 hours of 5-minute averages) and `FakeDeviceRepository` (three LEDs and a 200-action history). The searches, filters and averaging themselves belong to the backend and are tested there.
 
 ---
 

@@ -1,6 +1,7 @@
 import 'package:gp1/data/models/user.dart';
 
-const mockUser = User(
+/// A signed-in user with every profile field filled in.
+const sampleUser = User(
   id: 1,
   name: 'Leo Nguyen',
   username: 'leo_nguyen',
@@ -11,9 +12,3 @@ const mockUser = User(
   figma: 'https://figma.com/@leo-nguyen',
   swagger: 'http://localhost:8080/swagger/index.html',
 );
-
-/// Credentials pre-filled on the login form while the backend is mocked.
-const mockLoginUsername = 'admin';
-const mockLoginPassword = '123456';
-
-const mockAccessToken = 'mock-access-token';

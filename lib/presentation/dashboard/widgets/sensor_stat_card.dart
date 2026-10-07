@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gp1/generated/colors.gen.dart';
-import 'package:gp1/presentation/widgets/app_info_chip.dart';
 
 class SensorStatCard extends StatelessWidget {
   const SensorStatCard({
@@ -10,7 +9,6 @@ class SensorStatCard extends StatelessWidget {
     required this.unit,
     required this.icon,
     required this.color,
-    this.trend = 0.0,
   });
 
   final String title;
@@ -18,11 +16,9 @@ class SensorStatCard extends StatelessWidget {
   final String unit;
   final IconData icon;
   final Color color;
-  final double trend;
 
   @override
   Widget build(BuildContext context) {
-    final isPositive = trend >= 0;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -40,23 +36,13 @@ class SensorStatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const Spacer(),
-              AppInfoChip(
-                label: '${isPositive ? '+' : ''}${trend.toStringAsFixed(1)}',
-                icon: isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? ColorName.green : ColorName.red,
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 16),
           Text(

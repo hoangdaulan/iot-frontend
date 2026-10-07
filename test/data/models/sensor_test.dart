@@ -192,6 +192,14 @@ void main() {
     );
   });
 
+  test('SensorHistoryQuery sends the bucket as whole minutes', () {
+    expect(const SensorHistoryQuery(bucket: Duration(minutes: 5), size: 1000).toQueryParameters(), {
+      'bucket': '5m',
+      'size': '1000',
+    });
+    expect(const SensorHistoryQuery().toQueryParameters(), isNot(contains('bucket')));
+  });
+
   group('SensorHistoryQuery search', () {
     test('sends filter and q, and the UTC offset only for a time search', () {
       expect(
