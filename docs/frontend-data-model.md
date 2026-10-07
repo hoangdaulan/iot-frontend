@@ -30,7 +30,7 @@ Matching is exact and case-sensitive. A "fallback" value is used only when parsi
 
 | Dart enum | Used in | Wire values | Fallback |
 |---|---|---|---|
-| `UserRole` | `User.role`, `UserSummary.role` | `ADMIN`, `USER` | `unknown` |
+| `UserRole` | `User.role`, `UserInfo.role` | `ADMIN`, `USER` | `unknown` |
 | `DeviceStatus` | `Device.status`, latest `deviceStatus`, history `status` | `ON`, `OFF` | `unknown` |
 | `DeviceCommand` | command request and result `command` | `ON`, `OFF` | strict |
 | `DeviceActionType` | `DeviceAction.action`, history `action` | `TURN_ON`, `TURN_OFF` | strict |
@@ -68,7 +68,7 @@ All implemented by the backend. Everything except login and register needs `Auth
 
 | Endpoint | Repository method | Request | Response |
 |---|---|---|---|
-| `POST /api/auth/login` | `AuthRepository.login` | `LoginRequest` | `LoginResponse` (`accessToken` + `UserSummary`) |
+| `POST /api/auth/login` | `AuthRepository.login` | `LoginRequest` | `LoginResponse` (`accessToken` + `UserInfo`) |
 | `POST /api/auth/register` | `AuthRepository.register` | `RegisterRequest` | `RegisterResponse` (201) |
 | `GET /api/auth/profile` | `AuthRepository.getProfile` | — | `User` |
 | `PATCH /api/auth/profile` | `AuthRepository.updateProfile` | `UpdateProfileRequest` (changed fields only) | `User` |

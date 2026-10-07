@@ -176,6 +176,16 @@ class _ControlHistoryViewState extends State<ControlHistoryView> {
                 ),
               ),
               AppTableColumn(
+                headerLabel: 'User',
+                flex: 1,
+                cellBuilder: (action) => Center(
+                  child: Text(
+                    action.user?.displayName ?? '—',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+              AppTableColumn(
                 headerLabel: 'Action',
                 flex: 1,
                 cellBuilder: (action) => Center(

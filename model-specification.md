@@ -106,9 +106,9 @@ Possible backend JSON:
 }
 ```
 
-### UserSummary
+### UserInfo
 
-The login and register responses embed a partial user: `id`, `username`, `name?`, `role`, with no email. The frontend parses it as `UserSummary`. The full `User` always comes from `GET /api/auth/profile`.
+The login and register responses embed a partial user: `id`, `username`, `name?`, `role`, with no email. The frontend parses it as `UserInfo`. The full `User` always comes from `GET /api/auth/profile`.
 
 ---
 

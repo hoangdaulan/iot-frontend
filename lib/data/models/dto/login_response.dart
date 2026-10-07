@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:gp1/data/models/dto/user_summary.dart';
+import 'package:gp1/data/models/dto/user_info.dart';
 
 part 'login_response.freezed.dart';
 part 'login_response.g.dart';
@@ -12,7 +12,7 @@ abstract class LoginResponse with _$LoginResponse {
 
     /// Not part of the documented contract; kept for the existing refresh-token plumbing.
     String? refreshToken,
-    required UserSummary user,
+    required UserInfo user,
   }) = _LoginResponse;
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) => _$LoginResponseFromJson(json);

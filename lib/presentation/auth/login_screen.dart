@@ -96,11 +96,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ),
                       const SizedBox(height: 24),
-                      SizedBox(
-                        height: 320,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: const [_LoginTab(), _RegisterTab()],
+                      // Not a scrolling TabBarView: the visible tab takes the height it needs and
+                      // the other one stays in the tree, hidden, so its input is kept.
+                      ListenableBuilder(
+                        listenable: _tabController,
+                        builder: (context, _) => Column(
+                          children: [
+                            Offstage(offstage: _tabController.index != 0, child: const _LoginTab()),
+                            Offstage(
+                              offstage: _tabController.index != 1,
+                              child: const _RegisterTab(),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -203,111 +210,109 @@ class _RegisterTabState extends State<_RegisterTab> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            AppTextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full name',
-                prefixIcon: Icon(SolarIconsOutline.userId, size: 20),
-              ),
-              textCapitalization: TextCapitalization.words,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Please enter your full name';
-                return null;
-              },
+      child: Column(
+        children: [
+          AppTextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Full name',
+              prefixIcon: Icon(SolarIconsOutline.userId, size: 20),
             ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                prefixIcon: Icon(SolarIconsOutline.user, size: 20),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Please enter a username';
-                if (value.length < 3) return 'Username must be at least 3 characters';
-                return null;
-              },
+            textCapitalization: TextCapitalization.words,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return 'Please enter your full name';
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          AppTextField(
+            controller: _usernameController,
+            decoration: const InputDecoration(
+              labelText: 'Username',
+              prefixIcon: Icon(SolarIconsOutline.user, size: 20),
             ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(SolarIconsOutline.letter, size: 20),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Please enter an email';
-                if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) return 'Invalid email format';
-                return null;
-              },
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Please enter a username';
+              if (value.length < 3) return 'Username must be at least 3 characters';
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          AppTextField(
+            controller: _emailController,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(SolarIconsOutline.letter, size: 20),
             ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _passwordController,
-              obscureText: !_isPasswordVisible,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(SolarIconsOutline.lock, size: 20),
-                suffixIcon: IconButton(
-                  onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                  icon: Icon(
-                    _isPasswordVisible ? SolarIconsOutline.eyeClosed : SolarIconsOutline.eye,
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Please enter an email';
+              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) return 'Invalid email format';
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          AppTextField(
+            controller: _passwordController,
+            obscureText: !_isPasswordVisible,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: const Icon(SolarIconsOutline.lock, size: 20),
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                icon: Icon(
+                  _isPasswordVisible ? SolarIconsOutline.eyeClosed : SolarIconsOutline.eye,
+                ),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Please enter a password';
+              if (value.length < 6) return 'Password must be at least 6 characters';
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          AppTextField(
+            controller: _confirmPasswordController,
+            obscureText: !_isPasswordVisible,
+            decoration: const InputDecoration(
+              labelText: 'Confirm Password',
+              prefixIcon: Icon(SolarIconsOutline.lockPassword, size: 20),
+            ),
+            validator: (value) {
+              if (value != _passwordController.text) return 'Passwords do not match';
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
+              onPressed: () async {
+                if (!_formKey.currentState!.validate()) return;
+                final registered = await context.read<AuthCubit>().register(
+                  RegisterRequest(
+                    name: _nameController.text.trim(),
+                    username: _usernameController.text.trim(),
+                    email: _emailController.text.trim(),
+                    password: _passwordController.text,
                   ),
-                ),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Please enter a password';
-                if (value.length < 6) return 'Password must be at least 6 characters';
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _confirmPasswordController,
-              obscureText: !_isPasswordVisible,
-              decoration: const InputDecoration(
-                labelText: 'Confirm Password',
-                prefixIcon: Icon(SolarIconsOutline.lockPassword, size: 20),
-              ),
-              validator: (value) {
-                if (value != _passwordController.text) return 'Passwords do not match';
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  final registered = await context.read<AuthCubit>().register(
-                    RegisterRequest(
-                      name: _nameController.text.trim(),
-                      username: _usernameController.text.trim(),
-                      email: _emailController.text.trim(),
-                      password: _passwordController.text,
-                    ),
+                );
+                if (registered && context.mounted) {
+                  context.showSnackBar(
+                    'Registration successful! Please login.',
+                    type: SnackBarType.success,
                   );
-                  if (registered && context.mounted) {
-                    context.showSnackBar(
-                      'Registration successful! Please login.',
-                      type: SnackBarType.success,
-                    );
-                  }
-                },
-                child: const Text(
-                  'Create Account',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                }
+              },
+              child: const Text(
+                'Create Account',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

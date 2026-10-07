@@ -8,7 +8,7 @@ import 'package:gp1/data/models/dto/login_response.dart';
 import 'package:gp1/data/models/dto/register_request.dart';
 import 'package:gp1/data/models/dto/register_response.dart';
 import 'package:gp1/data/models/dto/update_profile_request.dart';
-import 'package:gp1/data/models/dto/user_summary.dart';
+import 'package:gp1/data/models/dto/user_info.dart';
 import 'package:gp1/data/models/user.dart';
 import 'package:gp1/data/repositories/auth_repository.dart';
 
@@ -50,13 +50,13 @@ class FakeAuthRepository implements AuthRepository {
   Result<LoginResponse> loginResult = const Success(
     LoginResponse(
       accessToken: 'jwt-token',
-      user: UserSummary(id: 1, username: 'admin', role: UserRole.admin),
+      user: UserInfo(id: 1, username: 'admin', role: UserRole.admin),
     ),
   );
   Result<User> profileResult = const Success(sampleUser);
   Result<RegisterResponse> registerResult = const Success(
     RegisterResponse(
-      user: UserSummary(id: 2, username: 'user01', role: UserRole.user),
+      user: UserInfo(id: 2, username: 'user01', role: UserRole.user),
     ),
   );
 
