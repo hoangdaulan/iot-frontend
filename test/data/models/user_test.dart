@@ -158,6 +158,9 @@ void main() {
         'name': 'A',
         'swagger': 'http://x/swagger',
       });
+      expect(const UpdateProfileRequest(report: 'http://x/report').toJson(), {
+        'report': 'http://x/report',
+      });
       expect(const UpdateProfileRequest().hasNoChanges, isTrue);
       expect(const UpdateProfileRequest(figma: '').hasNoChanges, isFalse);
     });
@@ -170,8 +173,10 @@ void main() {
         'role': 'ADMIN',
         'name': ' Administrator ',
         'swagger': 'http://localhost:8080/swagger/index.html',
+        'report': 'http://localhost:8080/report.pdf',
       });
 
+      expect(user.report, 'http://localhost:8080/report.pdf');
       expect(user.swagger, 'http://localhost:8080/swagger/index.html');
       expect(user.displayName, 'Administrator');
       expect(user.copyWith(name: null).displayName, 'admin');

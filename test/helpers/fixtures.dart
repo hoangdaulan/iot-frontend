@@ -11,4 +11,5 @@ const sampleUser = User(
   github: 'https://github.com/leo-nguyen',
   figma: 'https://figma.com/@leo-nguyen',
   swagger: 'http://localhost:8080/swagger/index.html',
+  report: 'http://localhost:8080/report.pdf',
 );

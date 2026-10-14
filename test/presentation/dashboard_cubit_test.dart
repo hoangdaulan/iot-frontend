@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/models/device.dart';
 import 'package:gp1/data/models/device_action.dart';
@@ -153,7 +154,14 @@ void main() {
       final cubit = DashboardCubit(sensors, FakeDeviceRepository());
       await cubit.loadDashboard();
       final before = cubit.state.series.of(SensorType.temperature).readings;
-      final soon = before.last.timestamp.add(const Duration(minutes: 1));
+      // Halfway to the end of the window the last point belongs to, whatever the clock says.
+      final bucket = AppConstants.chartBucket.inMilliseconds;
+      final lastMillis = before.last.timestamp.millisecondsSinceEpoch;
+      final windowEnd = (lastMillis ~/ bucket + 1) * bucket;
+      final soon = DateTime.fromMillisecondsSinceEpoch(
+        lastMillis + (windowEnd - lastMillis) ~/ 2,
+        isUtc: before.last.timestamp.isUtc,
+      );
       sensors.latest = LatestSensorDataResponse(
         data: {SensorType.temperature: SensorDataEntry(id: 903, value: 40.2, timestamp: soon)},
       );

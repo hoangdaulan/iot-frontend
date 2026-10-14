@@ -34,6 +34,9 @@ abstract class User with _$User {
 
     /// Link to the user's API documentation page.
     String? swagger,
+
+    /// Link to the user's project report.
+    String? report,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

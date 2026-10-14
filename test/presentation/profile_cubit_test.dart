@@ -42,6 +42,7 @@ void main() {
       name: 'Admin',
       phone: '0912',
       swagger: 'http://old',
+      report: 'http://old/report',
     );
 
     UpdateProfileRequest changes({
@@ -50,6 +51,7 @@ void main() {
       String github = '',
       String figma = '',
       String swagger = 'http://old',
+      String report = 'http://old/report',
     }) => ProfileCubit.changes(
       user,
       name: name,
@@ -57,6 +59,7 @@ void main() {
       github: github,
       figma: figma,
       swagger: swagger,
+      report: report,
     );
 
     test('nothing differs, nothing is sent', () {

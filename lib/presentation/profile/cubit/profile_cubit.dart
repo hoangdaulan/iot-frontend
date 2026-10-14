@@ -42,6 +42,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     required String github,
     required String figma,
     required String swagger,
+    required String report,
   }) {
     String? changed(String? current, String edited) =>
         (current ?? '') == edited.trim() ? null : edited.trim();
@@ -51,6 +52,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       github: changed(user.github, github),
       figma: changed(user.figma, figma),
       swagger: changed(user.swagger, swagger),
+      report: changed(user.report, report),
     );
   }
 

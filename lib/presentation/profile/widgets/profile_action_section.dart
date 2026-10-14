@@ -29,11 +29,19 @@ class _ProfileActionSectionState extends State<ProfileActionSection> {
   final _github = TextEditingController();
   final _figma = TextEditingController();
   final _swagger = TextEditingController();
+  final _report = TextEditingController();
 
   /// The user the controllers were last filled from, to refill them when it changes.
   User? _loaded;
 
-  List<TextEditingController> get _controllers => [_name, _phone, _github, _figma, _swagger];
+  List<TextEditingController> get _controllers => [
+    _name,
+    _phone,
+    _github,
+    _figma,
+    _swagger,
+    _report,
+  ];
 
   @override
   void initState() {
@@ -58,6 +66,7 @@ class _ProfileActionSectionState extends State<ProfileActionSection> {
     _github.text = user.github ?? '';
     _figma.text = user.figma ?? '';
     _swagger.text = user.swagger ?? '';
+    _report.text = user.report ?? '';
   }
 
   UpdateProfileRequest _changes(User user) => ProfileCubit.changes(
@@ -67,6 +76,7 @@ class _ProfileActionSectionState extends State<ProfileActionSection> {
     github: _github.text,
     figma: _figma.text,
     swagger: _swagger.text,
+    report: _report.text,
   );
 
   @override
@@ -156,6 +166,14 @@ class _ProfileActionSectionState extends State<ProfileActionSection> {
             decoration: const InputDecoration(
               labelText: 'Swagger',
               prefixIcon: Icon(SolarIconsOutline.code, size: 20),
+            ),
+          ),
+          AppTextField(
+            controller: _report,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: 'Report',
+              prefixIcon: Icon(SolarIconsOutline.document, size: 20),
             ),
           ),
           FilledButton.icon(

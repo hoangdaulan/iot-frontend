@@ -53,6 +53,7 @@ void main() {
       ('GitHub', sampleUser.github!),
       ('Figma', sampleUser.figma!),
       ('Swagger', sampleUser.swagger!),
+      ('Report', sampleUser.report!),
     ]) {
       expect(find.widgetWithText(TextFormField, value), findsOneWidget, reason: label);
     }
