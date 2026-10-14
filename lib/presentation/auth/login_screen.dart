@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/core/loading/loading_service.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
 import 'package:gp1/data/models/dto/register_request.dart';
 import 'package:gp1/generated/colors.gen.dart';
@@ -168,7 +169,7 @@ class _LoginTabState extends State<_LoginTab> {
           width: double.infinity,
           height: 48,
           child: FilledButton(
-            onPressed: context.read<AuthCubit>().login,
+            onPressed: () => context.read<AuthCubit>().login().withLoading(),
             child: const Text(
               'Sign In',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -291,14 +292,17 @@ class _RegisterTabState extends State<_RegisterTab> {
             child: FilledButton(
               onPressed: () async {
                 if (!_formKey.currentState!.validate()) return;
-                final registered = await context.read<AuthCubit>().register(
-                  RegisterRequest(
-                    name: _nameController.text.trim(),
-                    username: _usernameController.text.trim(),
-                    email: _emailController.text.trim(),
-                    password: _passwordController.text,
-                  ),
-                );
+                final registered = await context
+                    .read<AuthCubit>()
+                    .register(
+                      RegisterRequest(
+                        name: _nameController.text.trim(),
+                        username: _usernameController.text.trim(),
+                        email: _emailController.text.trim(),
+                        password: _passwordController.text,
+                      ),
+                    )
+                    .withLoading();
                 if (registered && context.mounted) {
                   context.showSnackBar(
                     'Registration successful! Please login.',

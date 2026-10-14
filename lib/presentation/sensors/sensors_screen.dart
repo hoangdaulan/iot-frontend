@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/di/injection.dart';
-import 'package:gp1/core/utils/extensions/date_time_extension.dart';
+import 'package:gp1/core/loading/loading_service.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
@@ -14,6 +13,7 @@ import 'package:gp1/presentation/widgets/app_text_field.dart';
 import 'package:gp1/presentation/widgets/dropdown/app_dropdown.dart';
 import 'package:gp1/presentation/widgets/models/app_option.dart';
 import 'package:gp1/presentation/widgets/table/app_table.dart';
+import 'package:gp1/presentation/widgets/timestamp_search_cell.dart';
 
 class SensorsScreen extends StatelessWidget {
   const SensorsScreen({super.key});
@@ -21,7 +21,7 @@ class SensorsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<SensorsCubit>()..loadSensorData(),
+      create: (_) => getIt<SensorsCubit>()..loadSensorData().withLoading(),
       child: BlocListener<SensorsCubit, SensorsState>(
         listener: (context, state) => context.handleFailure(state.failure),
         child: const SensorsView(),
@@ -59,12 +59,20 @@ class _SensorsViewState extends State<SensorsView> {
     for (final field in SensorSearchField.values) AppOption(field, field.label),
   ];
 
-  void _search() => context.read<SensorsCubit>().search(_field, _queryController.text);
+  void _search() =>
+      context.read<SensorsCubit>().search(_field, _queryController.text).withLoading();
+
+  bool get _canSearchTime => _field == SensorSearchField.all || _field == SensorSearchField.time;
+
+  void _searchTime(String text) {
+    _queryController.text = text;
+    _search();
+  }
 
   void _clear() {
     setState(() => _field = SensorSearchField.all);
     _queryController.clear();
-    context.read<SensorsCubit>().clear();
+    context.read<SensorsCubit>().clear().withLoading();
   }
 
   @override
@@ -158,17 +166,16 @@ class _SensorsViewState extends State<SensorsView> {
               AppTableColumn(
                 headerLabel: 'Timestamp',
                 flex: 1,
-                cellBuilder: (reading) => Center(
-                  child: Text(
-                    reading.timestamp.toFormatString(pattern: AppConstants.dateTimeFormat),
-                    style: const TextStyle(fontSize: 13),
-                  ),
+                cellBuilder: (reading) => TimestampSearchCell(
+                  timestamp: reading.timestamp,
+                  // Only "All" and "Time" read a time; the other kinds search values or names.
+                  onSearch: _canSearchTime ? _searchTime : null,
                 ),
               ),
             ],
-            onRefresh: cubit.refresh,
-            onRowsPerPageChanged: cubit.changePageSize,
-            onPageChanged: cubit.goToPage,
+            onRefresh: () => cubit.refresh().withLoading(),
+            onRowsPerPageChanged: (size) => cubit.changePageSize(size).withLoading(),
+            onPageChanged: (page) => cubit.goToPage(page).withLoading(),
           ),
         ),
       ],

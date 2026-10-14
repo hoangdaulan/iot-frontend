@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gp1/core/loading/loading_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gp1/core/di/injection.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
@@ -165,7 +166,7 @@ class _ChangePasswordContentState extends State<ChangePasswordContent> {
                           child: FilledButton(
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
-                                context.read<ChangePasswordCubit>().changePassword();
+                                context.read<ChangePasswordCubit>().changePassword().withLoading();
                               }
                             },
                             child: const Text('Reset Password'),

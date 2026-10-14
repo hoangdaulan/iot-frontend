@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gp1/core/di/injection.dart';
+import 'package:gp1/core/loading/loading_service.dart';
 import 'package:gp1/core/utils/extensions/snack_bar_extension.dart';
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/generated/colors.gen.dart';
@@ -26,7 +27,8 @@ class DashboardScreen extends StatelessWidget {
             title: const Text('Dashboard'),
             actions: [
               IconButton(
-                onPressed: context.read<DashboardCubit>().refreshLatestSensorData,
+                onPressed: () =>
+                    context.read<DashboardCubit>().refreshLatestSensorData().withLoading(),
                 icon: const Icon(Icons.refresh),
               ),
             ],
@@ -143,7 +145,7 @@ class DashboardView extends StatelessWidget {
                       color: _deviceColor(device.id),
                       isOn: device.isOn,
                       onToggle: (isOn) =>
-                          context.read<DashboardCubit>().setDeviceOn(device.id, isOn),
+                          context.read<DashboardCubit>().setDeviceOn(device.id, isOn).withLoading(),
                     ),
                 ],
               ),
