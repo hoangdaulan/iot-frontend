@@ -10,7 +10,7 @@ import 'package:gp1/data/repositories/sensor_repository.dart';
 import 'fake_device_repository.dart';
 
 /// A sensor repository for tests. It answers like the backend's history endpoint would for the
-/// last 24 hours in 5-minute averages (289 windows per type, the newest starting now), applies
+/// last 24 hours as 5-minute maxima (289 windows per type, the newest starting now), applies
 /// the type, time range and paging of the query, and records every query. It does not implement
 /// the search of `filter`/`q`: that belongs to the backend and is tested there.
 class FakeSensorRepository implements SensorRepository {

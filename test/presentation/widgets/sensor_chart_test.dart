@@ -96,7 +96,7 @@ void main() {
     ),
   );
 
-  testWidgets('a full day of 5-minute averages renders with clock labels', (tester) async {
+  testWidgets('a full day of 5-minute maxima renders with clock labels', (tester) async {
     final readings = [
       for (var i = 0; i <= 288; i++)
         _reading(i, origin.add(Duration(minutes: i * 5)), 20 + (i % 40) / 10),

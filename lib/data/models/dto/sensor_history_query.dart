@@ -26,7 +26,7 @@ class SensorHistoryQuery {
   /// Exact measured value to search for.
   final double? value;
 
-  /// Averages each sensor over windows of this length (whole minutes); every returned entry is
+  /// Takes the maximum of each sensor over windows of this length (whole minutes); every returned entry is
   /// then a window, stamped with its start.
   final Duration? bucket;
 

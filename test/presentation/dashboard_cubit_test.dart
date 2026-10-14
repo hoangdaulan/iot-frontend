@@ -30,7 +30,7 @@ void main() {
     expect(_isLedOn(cubit), isTrue);
     expect(sensors.latestCalls, 1);
 
-    // The query is the last 24 hours in 5-minute averages.
+    // The query is the last 24 hours as 5-minute maxima.
     final query = sensors.lastQuery!;
     final expectedStart = DateTime.now().subtract(const Duration(hours: 24));
     expect(query.from!.difference(expectedStart).abs(), lessThan(const Duration(seconds: 5)));
@@ -148,7 +148,7 @@ void main() {
       expect(_isLedOn(cubit), isTrue);
     });
 
-    test('a reading inside the last window replaces it instead of adding a point', () async {
+    test('a reading inside the last window raises it instead of adding a point', () async {
       final sensors = FakeSensorRepository();
       final cubit = DashboardCubit(sensors, FakeDeviceRepository());
       await cubit.loadDashboard();
@@ -162,8 +162,9 @@ void main() {
 
       final after = cubit.state.series.of(SensorType.temperature).readings;
       expect(after.length, before.length);
-      expect(after.last.value, 40.2);
-      expect(after.last.timestamp, soon);
+      // The point keeps the window's maximum, so a fresh value only raises it.
+      expect(after.last.value, before.last.value > 40.2 ? before.last.value : 40.2);
+      expect(after.last.timestamp, before.last.timestamp);
     });
 
     test('ignores readings that are not newer than what is shown', () async {

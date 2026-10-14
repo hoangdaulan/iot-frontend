@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gp1/app/constants/app_constants.dart';
 import 'package:gp1/core/base/result.dart';
@@ -13,7 +15,7 @@ import 'package:gp1/presentation/sensors/models/sensor_series.dart';
 class DashboardState {
   final bool isLoading;
 
-  /// The latest 24 hours of readings per sensor type, in 5-minute averages.
+  /// The latest 24 hours of readings per sensor type, as the maximum of each 5-minute window.
   final Map<SensorType, SensorSeries> series;
 
   /// Start of the window the charts show; their x-axis counts hours from here.
@@ -56,9 +58,10 @@ class DashboardCubit extends Cubit<DashboardState> {
 
   var _isCommandInFlight = false;
   var _isRefreshing = false;
+  Timer? _liveTimer;
 
-  /// Loads the device list and the last 24 hours of history for the charts, averaged over
-  /// 5-minute windows, then the latest values and device statuses.
+  /// Loads the device list and the last 24 hours of history for the charts, as the maximum of
+  /// each 5-minute window, then the latest values and device statuses.
   Future<void> loadDashboard() async {
     final devicesResult = await _deviceRepository.getDevices();
     final windowStart = DateTime.now().subtract(AppConstants.chartWindow);
@@ -70,6 +73,7 @@ class DashboardCubit extends Cubit<DashboardState> {
       ),
     );
     final latestResult = await _sensorRepository.getLatestSensorData();
+    if (isClosed) return;
 
     final series = SensorSeries.group(historyResult.dataOrNull?.toReadings() ?? const []);
     emit(
@@ -83,22 +87,61 @@ class DashboardCubit extends Cubit<DashboardState> {
         latestResult.dataOrNull,
       ).copyWith(failure: _firstFailure([devicesResult, historyResult, latestResult])),
     );
+    _startLiveUpdates();
   }
 
-  /// Fetches the newest values (and device statuses) and appends them to today's series.
-  Future<void> refreshLatestSensorData() async {
+  void _startLiveUpdates() {
+    _liveTimer?.cancel();
+    _liveTimer = Timer.periodic(
+      AppConstants.liveRefreshInterval,
+      (_) => refreshLatestSensorData(silent: true),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _liveTimer?.cancel();
+    return super.close();
+  }
+
+  /// Fetches the newest values (and device statuses), appends them to the series and slides the
+  /// 24-hour window forward. With [silent] a failure is not reported.
+  Future<void> refreshLatestSensorData({bool silent = false}) async {
     if (_isRefreshing) return;
 
     _isRefreshing = true;
     final result = await _sensorRepository.getLatestSensorData();
     _isRefreshing = false;
+    if (isClosed) return;
 
     switch (result) {
       case Success(data: final latest):
-        emit(_withLatest(state, latest));
+        emit(_slideWindow(_withLatest(state, latest)));
       case Failure():
-        emit(state.copyWith(failure: result));
+        if (!silent) emit(state.copyWith(failure: result));
     }
+  }
+
+  /// Moves the window start to 24 hours before now and drops the readings that fell out of it, so
+  /// the chart keeps showing the last 24 hours as time passes.
+  DashboardState _slideWindow(DashboardState current) {
+    final windowStart = DateTime.now().subtract(AppConstants.chartWindow);
+    // A window's maximum is stamped with the start of its window, so one that began just before the
+    // window start still covers part of it.
+    final oldest = windowStart.subtract(AppConstants.chartBucket);
+    return current.copyWith(
+      windowStart: windowStart,
+      series: {
+        for (final entry in current.series.entries)
+          entry.key: SensorSeries(
+            type: entry.key,
+            readings: [
+              for (final reading in entry.value.readings)
+                if (!reading.timestamp.isBefore(oldest)) reading,
+            ],
+          ),
+      },
+    );
   }
 
   /// Sends the command and only updates the device once the backend confirms it. On `FAILED` or
@@ -141,15 +184,15 @@ class DashboardCubit extends Cubit<DashboardState> {
 
     final readings = [for (final series in current.series.values) ...series.readings];
     for (final reading in latest.toReadings()) {
-      final last = current.series.of(reading.type).readings.lastOrNull;
-      if (last == null || reading.timestamp.isAfter(last.timestamp)) {
-        // Inside the window of the last average the fresh value takes its place, so the chart
-        // does not collect a point per refresh.
-        if (last != null &&
-            reading.timestamp.difference(last.timestamp) < AppConstants.chartBucket) {
-          readings.remove(last);
+      final last = readings.where((r) => r.type == reading.type).lastOrNull;
+      if (last != null && _bucketStart(reading.timestamp) == _bucketStart(last.timestamp)) {
+        // Same window as the last point: it shows the window's maximum, so the fresh value
+        // only raises it, and the chart does not collect a point per refresh.
+        if (reading.value > last.value) {
+          readings[readings.indexOf(last)] = last.copyWith(value: reading.value);
         }
-        readings.add(reading);
+      } else if (last == null || reading.timestamp.isAfter(last.timestamp)) {
+        readings.add(reading.copyWith(timestamp: _bucketStart(reading.timestamp)));
       }
     }
     final statuses = {for (final device in latest.devices) device.id: device.status};
@@ -160,6 +203,14 @@ class DashboardCubit extends Cubit<DashboardState> {
           device.copyWith(status: statuses[device.id] ?? device.status),
       ],
     );
+  }
+
+  /// The start of the [AppConstants.chartBucket] window containing [time], aligned to the epoch
+  /// like the backend's windows.
+  DateTime _bucketStart(DateTime time) {
+    final bucket = AppConstants.chartBucket.inMilliseconds;
+    final millis = time.millisecondsSinceEpoch ~/ bucket * bucket;
+    return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: time.isUtc);
   }
 
   Failure? _firstFailure(List<Result<Object?>> results) =>

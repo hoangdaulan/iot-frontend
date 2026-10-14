@@ -146,13 +146,13 @@ There's no `GET /api/devices` and no device-scoped latest endpoint.
 | `SensorsCubit` / `SensorsState` | `PagedList<SensorReading>`, per-type `series` | filters, precision, search, `failure` |
 | `ControlHistoryCubit` / `ControlHistoryState` | `PagedList<DeviceActionHistoryItem>` | action/result/date filters, search, `failure` |
 
-**Dashboard.** Loading calls the last 24 hours of history (`from: now − 24 h`, `bucket: 5m`, so the backend returns 5-minute averages) plus `latest`, which supplies the LED status and the newest values. **Refresh** calls `latest` again and appends newer readings. The **LED switch** sends `ON`/`OFF` and changes only on `SUCCESS`; on `FAILED`, `TIMEOUT` or an error it keeps its state and shows the message. A second toggle is ignored while a command is in flight.
+**Dashboard.** Loading calls the last 24 hours of history (`from: now − 24 h`, `bucket: 5m`, so the backend returns the maximum of each 5-minute window) plus `latest`, which supplies the LED status and the newest values. **Refresh** calls `latest` again and appends newer readings. The **LED switch** sends `ON`/`OFF` and changes only on `SUCCESS`; on `FAILED`, `TIMEOUT` or an error it keeps its state and shows the message. A second toggle is ignored while a command is in flight.
 
 ---
 
 ## 7. Test fakes
 
-The app has no mock data and no mock mode: every screen reads from the backend. Tests use fakes kept out of `lib/`, in `test/helpers/`: `FakeAuthRepository`, `FakeSensorRepository` (24 hours of 5-minute averages) and `FakeDeviceRepository` (three LEDs and a 200-action history). The searches, filters and averaging themselves belong to the backend and are tested there.
+The app has no mock data and no mock mode: every screen reads from the backend. Tests use fakes kept out of `lib/`, in `test/helpers/`: `FakeAuthRepository`, `FakeSensorRepository` (24 hours of 5-minute maxima) and `FakeDeviceRepository` (three LEDs and a 200-action history). The searches, filters and bucketing themselves belong to the backend and are tested there.
 
 ---
 
