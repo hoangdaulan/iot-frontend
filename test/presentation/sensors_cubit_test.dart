@@ -39,7 +39,6 @@ void main() {
     final query = repository.queries.last;
     expect(query.searchField, SensorSearchField.time);
     expect(query.searchQuery, '2026/10/06 11');
-    expect(query.utcOffsetMinutes, DateTime.now().timeZoneOffset.inMinutes);
     expect(query.page, 0);
     expect(cubit.state.field, SensorSearchField.time);
     expect(cubit.state.query, '2026/10/06 11');

@@ -167,29 +167,30 @@ void main() {
     expect(LatestSensorDataResponse.fromJson(latest.toJson()), latest);
   });
 
-  test('SensorHistoryQuery encodes type, timeRange, value and paging', () {
+  test('SensorHistoryQuery encodes type, startTime, endTime, value and paging', () {
     expect(const SensorHistoryQuery().toQueryParameters(), isEmpty);
     expect(
       SensorHistoryQuery(
         type: SensorType.humidity,
-        from: DateTime.utc(2026, 8, 1),
-        to: DateTime.utc(2026, 8, 2),
+        startTime: DateTime.utc(2026, 8, 1),
+        endTime: DateTime.utc(2026, 8, 2),
         value: 65.2,
         page: 1,
         size: 20,
       ).toQueryParameters(),
       {
         'type': 'humidity',
-        'timeRange': '2026-08-01T00:00:00.000Z/2026-08-02T00:00:00.000Z',
+        'startTime': '2026-08-01T00:00:00.000Z',
+        'endTime': '2026-08-02T00:00:00.000Z',
         'value': '65.2',
         'page': '1',
         'size': '20',
       },
     );
-    expect(
-      SensorHistoryQuery(from: DateTime.utc(2026, 8, 1)).toQueryParameters()['timeRange'],
-      '2026-08-01T00:00:00.000Z/..',
-    );
+    // A missing bound is left out, which leaves that side open.
+    expect(SensorHistoryQuery(startTime: DateTime.utc(2026, 8, 1)).toQueryParameters(), {
+      'startTime': '2026-08-01T00:00:00.000Z',
+    });
   });
 
   test('SensorHistoryQuery sends the bucket as whole minutes', () {
@@ -201,33 +202,30 @@ void main() {
   });
 
   group('SensorHistoryQuery search', () {
-    test('sends filter and q, and the UTC offset only for a time search', () {
+    test('sends filter and q', () {
       expect(
         const SensorHistoryQuery(
           searchField: SensorSearchField.time,
           searchQuery: ' 2026/10/06 11 ',
-          utcOffsetMinutes: 420,
         ).toQueryParameters(),
-        {'filter': 'time', 'q': '2026/10/06 11', 'utcOffset': '420'},
+        {'filter': 'time', 'q': '2026/10/06 11'},
       );
       expect(
         const SensorHistoryQuery(
           searchField: SensorSearchField.temperature,
           searchQuery: '28.5',
-          utcOffsetMinutes: 420,
         ).toQueryParameters(),
         {'filter': 'temperature', 'q': '28.5'},
       );
     });
 
-    test('All sends the query with the UTC offset, an empty query sends nothing', () {
+    test('All sends the query, an empty query sends nothing', () {
       expect(
         const SensorHistoryQuery(
           searchField: SensorSearchField.all,
           searchQuery: 'led',
-          utcOffsetMinutes: 420,
         ).toQueryParameters(),
-        {'q': 'led', 'utcOffset': '420'},
+        {'q': 'led'},
       );
       expect(
         const SensorHistoryQuery(

@@ -67,7 +67,7 @@ class DashboardCubit extends Cubit<DashboardState> {
     final windowStart = DateTime.now().subtract(AppConstants.chartWindow);
     final historyResult = await _sensorRepository.getSensorHistory(
       SensorHistoryQuery(
-        from: windowStart,
+        startTime: windowStart,
         bucket: AppConstants.chartBucket,
         size: AppConstants.historyFetchSize,
       ),

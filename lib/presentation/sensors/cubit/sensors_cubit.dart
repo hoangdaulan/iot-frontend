@@ -72,7 +72,6 @@ class SensorsCubit extends Cubit<SensorsState> {
       SensorHistoryQuery(
         searchField: nextField,
         searchQuery: nextQuery,
-        utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
         page: page - 1,
         size: size,
       ),

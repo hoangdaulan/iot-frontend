@@ -62,8 +62,8 @@ class FakeSensorRepository implements SensorRepository {
     queries.add(query);
     if (historyFailure != null) return historyFailure!;
 
-    final from = query.from;
-    final to = query.to;
+    final from = query.startTime;
+    final to = query.endTime;
     final matching = _readings
         .where((r) => query.type == null || r.type == query.type)
         .where((r) => from == null || !r.timestamp.isBefore(from))

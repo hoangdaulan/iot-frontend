@@ -8,9 +8,8 @@ class DeviceHistoryQuery {
     this.action,
     this.result,
     this.query,
-    this.utcOffsetMinutes,
-    this.from,
-    this.to,
+    this.startTime,
+    this.endTime,
     this.page,
     this.size,
   });
@@ -22,11 +21,9 @@ class DeviceHistoryQuery {
   /// A leading part of `yyyy/MM/dd HH:mm:ss`; matches the actions inside that period.
   final String? query;
 
-  /// Offset east of UTC in minutes, so the backend reads a time search in the user's zone.
-  final int? utcOffsetMinutes;
-
-  final DateTime? from;
-  final DateTime? to;
+  /// Bounds of the time range; a missing bound leaves that side open.
+  final DateTime? startTime;
+  final DateTime? endTime;
 
   /// 0-based.
   final int? page;
@@ -36,12 +33,9 @@ class DeviceHistoryQuery {
     if (deviceId != null) 'deviceId': '$deviceId',
     if (action != null) 'action': action!.wireValue,
     if (result != null) 'result': result!.wireValue,
-    if ((query?.trim() ?? '').isNotEmpty) ...{
-      'q': query!.trim(),
-      if (utcOffsetMinutes != null) 'utcOffset': '$utcOffsetMinutes',
-    },
-    if (from != null) 'from': const DateTimeConverter().toJson(from!),
-    if (to != null) 'to': const DateTimeConverter().toJson(to!),
+    if ((query?.trim() ?? '').isNotEmpty) 'q': query!.trim(),
+    if (startTime != null) 'startTime': const DateTimeConverter().toJson(startTime!),
+    if (endTime != null) 'endTime': const DateTimeConverter().toJson(endTime!),
     if (page != null) 'page': '$page',
     if (size != null) 'size': '$size',
   };

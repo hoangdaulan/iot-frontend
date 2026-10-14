@@ -88,7 +88,7 @@ There's no `GET /api/devices` and no device-scoped latest endpoint.
             "light":       { "id": 3030, "value": 512,  "unit": "lux", "timestamp": "..." } },
   "deviceStatus": "OFF" }
 
-// GET /api/sensor-data/history?type=temperature&timeRange=2026-08-14T00:00:00Z/..&value=26.5&page=0&size=20
+// GET /api/sensor-data/history?type=temperature&startTime=2026-08-14T00:00:00%2B07:00&value=26.5&page=0&size=20
 { "data": { "temperature": [ { "id": 101, "value": 26.5, "unit": "°C", "timestamp": "..." } ],
             "humidity": [], "light": [] },
   "page": 0, "pageSize": 20, "totalElements": 1, "totalPages": 1 }
@@ -105,7 +105,7 @@ There's no `GET /api/devices` and no device-scoped latest endpoint.
 
 **Paging.** Both history endpoints are 0-based, with `size` between 1 and 5000 (default 20). For compatibility, sensor history keeps the report's grouped-by-type body. Its paging fields (`page`, `pageSize`, plus the added `totalElements`/`totalPages`) count individual measurements, newest first. `SensorHistoryResponse.toReadings()` flattens it.
 
-**`timeRange`** is an ISO-8601 interval, `<from>/<to>`, with `..` for an open end.
+**`startTime`** and **`endTime`** are ISO-8601 times; either may be left out for an open end. A time without a zone is read as Vietnam time (UTC+7), which is also the zone the API writes its timestamps in and the one `q` time searches use.
 
 ---
 

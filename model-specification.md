@@ -256,7 +256,7 @@ Query: `from`, `to`, `page` (0-based), `size`. `deviceId` is accepted for compat
 
 ### GET /api/sensor-data/history
 
-Query: `type`, `timeRange`, `value`, `page` (0-based), `size`. `timeRange` is an ISO-8601 interval, `<from>/<to>`, with `..` for an open end.
+Query: `type`, `startTime`, `endTime`, `value`, `page` (0-based), `size`. `startTime` and `endTime` are ISO-8601 times; either may be left out for an open end. A time without a zone is read as Vietnam time (UTC+7).
 
 ```json
 {

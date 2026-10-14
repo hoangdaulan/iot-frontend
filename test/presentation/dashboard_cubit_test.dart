@@ -34,15 +34,18 @@ void main() {
     // The query is the last 24 hours as 5-minute maxima.
     final query = sensors.lastQuery!;
     final expectedStart = DateTime.now().subtract(const Duration(hours: 24));
-    expect(query.from!.difference(expectedStart).abs(), lessThan(const Duration(seconds: 5)));
+    expect(query.startTime!.difference(expectedStart).abs(), lessThan(const Duration(seconds: 5)));
     expect(query.bucket, const Duration(minutes: 5));
-    expect(cubit.state.windowStart, query.from);
+    expect(cubit.state.windowStart, query.startTime);
 
     final temperature = cubit.state.series.of(SensorType.temperature).readings;
     expect(temperature.length, inInclusiveRange(280, 290), reason: '24 h / 5 min ≈ 288 windows');
     // A window is stamped with its start, so the first may begin up to one window early.
     for (final reading in temperature) {
-      expect(reading.timestamp.isBefore(query.from!.subtract(const Duration(minutes: 5))), isFalse);
+      expect(
+        reading.timestamp.isBefore(query.startTime!.subtract(const Duration(minutes: 5))),
+        isFalse,
+      );
     }
     final gaps = [
       for (var i = 1; i < temperature.length; i++)

@@ -235,34 +235,24 @@ void main() {
           action: DeviceActionType.turnOff,
           result: DeviceActionResult.timeout,
           query: ' 2026/10/06 11 ',
-          utcOffsetMinutes: 420,
         ).toQueryParameters(),
-        {
-          'deviceId': '2',
-          'action': 'TURN_OFF',
-          'result': 'TIMEOUT',
-          'q': '2026/10/06 11',
-          'utcOffset': '420',
-        },
+        {'deviceId': '2', 'action': 'TURN_OFF', 'result': 'TIMEOUT', 'q': '2026/10/06 11'},
       );
-      expect(
-        const DeviceHistoryQuery(query: '  ', utcOffsetMinutes: 420).toQueryParameters(),
-        isEmpty,
-      );
+      expect(const DeviceHistoryQuery(query: '  ').toQueryParameters(), isEmpty);
     });
 
     test('DeviceHistoryQuery sends only the parameters that are set', () {
       expect(const DeviceHistoryQuery().toQueryParameters(), isEmpty);
       expect(
         DeviceHistoryQuery(
-          from: DateTime.utc(2026, 8, 1),
-          to: DateTime.utc(2026, 8, 31),
+          startTime: DateTime.utc(2026, 8, 1),
+          endTime: DateTime.utc(2026, 8, 31),
           page: 0,
           size: 20,
         ).toQueryParameters(),
         {
-          'from': '2026-08-01T00:00:00.000Z',
-          'to': '2026-08-31T00:00:00.000Z',
+          'startTime': '2026-08-01T00:00:00.000Z',
+          'endTime': '2026-08-31T00:00:00.000Z',
           'page': '0',
           'size': '20',
         },

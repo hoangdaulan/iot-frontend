@@ -68,7 +68,6 @@ void main() {
 
     final query = repository.historyQueries.last;
     expect(query.query, '2026/10');
-    expect(query.utcOffsetMinutes, DateTime.now().timeZoneOffset.inMinutes);
     expect(query.result, DeviceActionResult.failed);
     expect(cubit.state.searchQuery, '2026/10');
   });

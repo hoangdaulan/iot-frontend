@@ -111,7 +111,6 @@ class ControlHistoryCubit extends Cubit<ControlHistoryState> {
         action: action,
         result: result,
         query: query,
-        utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
         page: page - 1,
         size: size,
       ),

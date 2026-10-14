@@ -6,22 +6,21 @@ import 'package:gp1/data/models/sensor_search_field.dart';
 class SensorHistoryQuery {
   const SensorHistoryQuery({
     this.type,
-    this.from,
-    this.to,
+    this.startTime,
+    this.endTime,
     this.value,
     this.bucket,
     this.searchField,
     this.searchQuery,
-    this.utcOffsetMinutes,
     this.page,
     this.size,
   });
 
   final SensorType? type;
 
-  /// Bounds of the documented `timeRange` parameter.
-  final DateTime? from;
-  final DateTime? to;
+  /// Bounds of the time range; a missing bound leaves that side open. Sent as ISO-8601 instants.
+  final DateTime? startTime;
+  final DateTime? endTime;
 
   /// Exact measured value to search for.
   final double? value;
@@ -36,30 +35,20 @@ class SensorHistoryQuery {
   final SensorSearchField? searchField;
   final String? searchQuery;
 
-  /// Offset east of UTC in minutes, so the backend reads a time search in the user's zone.
-  final int? utcOffsetMinutes;
-
   /// 0-based, like control history.
   final int? page;
   final int? size;
 
-  /// `timeRange` is sent as an ISO-8601 interval (`<from>/<to>`, `..` for an open end). The
-  /// report does not fix this encoding yet.
   Map<String, String> toQueryParameters() => {
     if (type != null) 'type': type!.name,
-    if (from != null || to != null) 'timeRange': '${_format(from)}/${_format(to)}',
+    if (startTime != null) 'startTime': const DateTimeConverter().toJson(startTime!),
+    if (endTime != null) 'endTime': const DateTimeConverter().toJson(endTime!),
     if (value != null) 'value': '$value',
     if (bucket != null) 'bucket': '${bucket!.inMinutes}m',
     if (searchField != null && searchField != SensorSearchField.all)
       'filter': searchField!.wireValue,
     if ((searchQuery?.trim() ?? '').isNotEmpty) 'q': searchQuery!.trim(),
-    if ((searchField == SensorSearchField.time || searchField == SensorSearchField.all) &&
-        utcOffsetMinutes != null)
-      'utcOffset': '$utcOffsetMinutes',
     if (page != null) 'page': '$page',
     if (size != null) 'size': '$size',
   };
-
-  static String _format(DateTime? time) =>
-      time == null ? '..' : const DateTimeConverter().toJson(time);
 }
