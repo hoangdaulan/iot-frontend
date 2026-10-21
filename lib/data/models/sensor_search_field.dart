@@ -6,6 +6,7 @@ enum SensorSearchField {
   temperature('temperature', 'Temperature', 'Value, e.g. 28 for 28.0 - 28.99'),
   humidity('humidity', 'Humidity', 'Value, e.g. 65'),
   light('light', 'Light', 'Value, e.g. 420'),
+  windSpeed('wind_speed', 'Wind Speed', 'Value, e.g. 300 for 300.0 - 300.99'),
   time('time', 'Time', 'yyyy/MM/dd HH:mm:ss, e.g. 2026/10/06 11');
 
   const SensorSearchField(this.wireValue, this.label, this.hint);

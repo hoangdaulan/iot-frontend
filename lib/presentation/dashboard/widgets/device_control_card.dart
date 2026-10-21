@@ -10,7 +10,10 @@ class DeviceControlCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.isOn,
-    required this.onToggle,
+    this.onToggle,
+    this.activeLabel = 'Active',
+    this.inactiveLabel = 'Inactive',
+    this.activeChipColor = ColorName.green,
   });
 
   final String title;
@@ -18,7 +21,13 @@ class DeviceControlCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isOn;
-  final ValueChanged<bool> onToggle;
+
+  /// Null for a device a user cannot switch (the wind warning LED): the card shows its state
+  /// without a switch.
+  final ValueChanged<bool>? onToggle;
+  final String activeLabel;
+  final String inactiveLabel;
+  final Color activeChipColor;
 
   @override
   Widget build(BuildContext context) {
@@ -68,13 +77,14 @@ class DeviceControlCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 AppInfoChip(
-                  label: isOn ? 'Active' : 'Inactive',
-                  color: isOn ? ColorName.green : ColorName.labelSecondary,
+                  label: isOn ? activeLabel : inactiveLabel,
+                  color: isOn ? activeChipColor : ColorName.labelSecondary,
                 ),
               ],
             ),
           ),
-          Switch.adaptive(value: isOn, onChanged: onToggle, activeTrackColor: color),
+          if (onToggle != null)
+            Switch.adaptive(value: isOn, onChanged: onToggle, activeTrackColor: color),
         ],
       ),
     );

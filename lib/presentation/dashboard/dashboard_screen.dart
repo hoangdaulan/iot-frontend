@@ -156,11 +156,19 @@ class DashboardView extends StatelessWidget {
                     DeviceControlCard(
                       title: device.name,
                       subtitle: device.type,
-                      icon: Icons.light_mode,
-                      color: _deviceColor(device.id),
+                      icon: device.isAutomatic ? Icons.warning_amber_rounded : Icons.light_mode,
+                      color: device.isAutomatic ? ColorName.red : _deviceColor(device.id),
                       isOn: device.isOn,
-                      onToggle: (isOn) =>
-                          context.read<DashboardCubit>().setDeviceOn(device.id, isOn).withLoading(),
+                      // The wind warning LED follows the wind speed: it has no switch.
+                      onToggle: device.isAutomatic
+                          ? null
+                          : (isOn) => context
+                                .read<DashboardCubit>()
+                                .setDeviceOn(device.id, isOn)
+                                .withLoading(),
+                      activeLabel: device.isAutomatic ? 'Warning' : 'Active',
+                      inactiveLabel: device.isAutomatic ? 'Normal' : 'Inactive',
+                      activeChipColor: device.isAutomatic ? ColorName.red : ColorName.green,
                     ),
                 ],
               ),

@@ -3,6 +3,7 @@ import 'package:gp1/data/models/dto/latest_sensor_data_response.dart';
 import 'package:gp1/data/models/dto/sensor_data_entry.dart';
 import 'package:gp1/data/models/dto/sensor_history_query.dart';
 import 'package:gp1/data/models/dto/sensor_history_response.dart';
+import 'package:gp1/data/models/dto/wind_warning_report.dart';
 import 'package:gp1/data/models/sensor.dart';
 import 'package:gp1/data/models/sensor_reading.dart';
 import 'package:gp1/data/repositories/sensor_repository.dart';
@@ -86,6 +87,31 @@ class FakeSensorRepository implements SensorRepository {
         pageSize: size,
         totalElements: matching.length,
         totalPages: (matching.length / size).ceil(),
+      ),
+    );
+  }
+
+  /// What the wind warnings call returns; by default the first 14 days of October 2026 with a
+  /// count that differs from day to day.
+  Result<WindWarningReport>? windWarnings;
+  var windWarningCalls = 0;
+
+  @override
+  Future<Result<WindWarningReport>> getWindWarnings({String? month}) async {
+    windWarningCalls++;
+    if (windWarnings != null) return windWarnings!;
+    final days = [
+      for (var d = 1; d <= 31; d++)
+        WindWarningDay(
+          date: '2026-10-${d.toString().padLeft(2, '0')}',
+          count: d % 7 == 0 ? 0 : d * 3,
+        ),
+    ];
+    return Success(
+      WindWarningReport(
+        month: month ?? '2026-10',
+        total: days.fold(0, (sum, d) => sum + d.count),
+        days: days,
       ),
     );
   }

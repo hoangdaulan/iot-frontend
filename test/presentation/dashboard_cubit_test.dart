@@ -152,6 +152,27 @@ void main() {
       expect(_isLedOn(cubit), isTrue);
     });
 
+    test('the wind speed card follows the newest reading', () async {
+      final sensors = FakeSensorRepository();
+      final cubit = DashboardCubit(sensors, FakeDeviceRepository());
+      await cubit.loadDashboard();
+      final readings = cubit.state.series.of(SensorType.windSpeed).readings;
+      expect(readings, isNotEmpty);
+      final now = readings.last.timestamp.add(const Duration(minutes: 6));
+      sensors.latest = LatestSensorDataResponse(
+        data: {SensorType.windSpeed: SensorDataEntry(id: 910, value: 345, timestamp: now)},
+        devices: const [
+          Device(id: 3, name: 'LED WIND', type: 'Warning Led', status: DeviceStatus.on),
+        ],
+      );
+
+      await cubit.refreshLatestSensorData();
+
+      expect(cubit.state.series.of(SensorType.windSpeed).latestValue, 345);
+      expect(cubit.state.devices.firstWhere((d) => d.id == 3).isOn, isTrue);
+      await cubit.close();
+    });
+
     test('a reading inside the last window raises it instead of adding a point', () async {
       final sensors = FakeSensorRepository();
       final cubit = DashboardCubit(sensors, FakeDeviceRepository());

@@ -8,6 +8,7 @@ import 'package:gp1/presentation/control_history/control_history_screen.dart';
 import 'package:gp1/presentation/dashboard/dashboard_screen.dart';
 import 'package:gp1/presentation/profile/profile_screen.dart';
 import 'package:gp1/presentation/sensors/sensors_screen.dart';
+import 'package:gp1/presentation/wind_report/wind_report_screen.dart';
 import 'package:solar_icons/solar_icons.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -29,13 +30,8 @@ class AppRoute extends GoRoute {
   });
 
   static final base = [login, log];
-  static final all = [
-    dashboard,
-    sensors,
-    controlHistory,
-    account,
-  ];
-  static final mobileShellRoutes = [dashboard, sensors, controlHistory, account];
+  static final all = [dashboard, sensors, controlHistory, windReport, account];
+  static final mobileShellRoutes = [dashboard, sensors, controlHistory, windReport, account];
 
   static final login = AppRoute(
     title: 'Login',
@@ -72,6 +68,15 @@ class AppRoute extends GoRoute {
     selectedIcon: SolarIconsBold.history,
     path: EAppRoute.controlHistory.path,
     builder: (context, state) => const ControlHistoryScreen(),
+  );
+
+  static final windReport = AppRoute(
+    title: 'Wind Report',
+    shortTitle: 'Wind',
+    icon: SolarIconsOutline.wind,
+    selectedIcon: SolarIconsBold.wind,
+    path: EAppRoute.windReport.path,
+    builder: (context, state) => const WindReportScreen(),
   );
 
   static final account = AppRoute(

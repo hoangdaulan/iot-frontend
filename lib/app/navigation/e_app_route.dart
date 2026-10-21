@@ -6,6 +6,7 @@ enum EAppRoute {
   dashboard(path: '/'),
   sensors(path: '/sensors'),
   controlHistory(path: '/control-history'),
+  windReport(path: '/wind-report'),
   account(path: '/account'),
   changePassword(path: 'change-password');
 

@@ -20,6 +20,7 @@ import 'package:gp1/presentation/control_history/cubit/control_history_cubit.dar
 import 'package:gp1/presentation/dashboard/cubit/dashboard_cubit.dart';
 import 'package:gp1/presentation/profile/cubit/profile_cubit.dart';
 import 'package:gp1/presentation/sensors/cubit/sensors_cubit.dart';
+import 'package:gp1/presentation/wind_report/cubit/wind_report_cubit.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -61,4 +62,5 @@ void configureDependencies() {
   );
   getIt.registerFactory<SensorsCubit>(() => SensorsCubit(getIt<SensorRepository>()));
   getIt.registerFactory<ControlHistoryCubit>(() => ControlHistoryCubit(getIt<DeviceRepository>()));
+  getIt.registerFactory<WindReportCubit>(() => WindReportCubit(getIt<SensorRepository>()));
 }

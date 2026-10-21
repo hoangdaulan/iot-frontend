@@ -35,4 +35,7 @@ abstract class Device with _$Device {
   factory Device.fromJson(Map<String, dynamic> json) => _$DeviceFromJson(json);
 
   bool get isOn => status == DeviceStatus.on;
+
+  /// The wind warning LED follows the wind speed; a user cannot switch it.
+  bool get isAutomatic => type == 'Warning Led';
 }

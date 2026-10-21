@@ -133,6 +133,36 @@ void main() {
     });
   });
 
+  group('ApiSensorRepository wind warnings', () {
+    test('getWindWarnings asks for the month and parses every day', () async {
+      final backend = _FakeBackend(200, {
+        'month': '2026-10',
+        'threshold': 300,
+        'total': 5,
+        'days': [
+          {'date': '2026-10-01', 'count': 2},
+          {'date': '2026-10-02', 'count': 3},
+        ],
+      });
+
+      final result = await ApiSensorRepository(_dio(backend)).getWindWarnings(month: '2026-10');
+
+      expect(backend.request?.method, 'GET');
+      expect(backend.request?.path, '/api/reports/wind-warnings');
+      expect(backend.request?.queryParameters, {'month': '2026-10'});
+      final report = result.dataOrNull!;
+      expect(report.total, 5);
+      expect(report.days.map((d) => d.count), [2, 3]);
+      expect(report.days.last.day, 2);
+    });
+
+    test('without a month the query is empty', () async {
+      final backend = _FakeBackend(200, {'month': '2026-10', 'days': []});
+      await ApiSensorRepository(_dio(backend)).getWindWarnings();
+      expect(backend.request?.queryParameters, isEmpty);
+    });
+  });
+
   group('ApiAuthRepository avatar', () {
     test('uploadAvatar posts the image as the multipart field "file"', () async {
       final backend = _FakeBackend(200, {

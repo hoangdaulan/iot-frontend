@@ -2,6 +2,7 @@ import 'package:gp1/core/base/result.dart';
 import 'package:gp1/data/models/dto/latest_sensor_data_response.dart';
 import 'package:gp1/data/models/dto/sensor_history_query.dart';
 import 'package:gp1/data/models/dto/sensor_history_response.dart';
+import 'package:gp1/data/models/dto/wind_warning_report.dart';
 import 'package:gp1/data/models/sensor.dart';
 
 abstract interface class SensorRepository {
@@ -13,4 +14,8 @@ abstract interface class SensorRepository {
 
   /// `GET /api/sensor-data/latest`
   Future<Result<LatestSensorDataResponse>> getLatestSensorData();
+
+  /// `GET /api/reports/wind-warnings`: the warnings of each day of [month] (`yyyy-MM`; the
+  /// current month when null).
+  Future<Result<WindWarningReport>> getWindWarnings({String? month});
 }

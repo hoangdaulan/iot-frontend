@@ -229,6 +229,16 @@ void main() {
     expect(const SensorHistoryQuery().toQueryParameters(), isNot(contains('bucket')));
   });
 
+  test('searching by wind speed sends filter=wind_speed', () {
+    expect(
+      const SensorHistoryQuery(
+        searchField: SensorSearchField.windSpeed,
+        searchQuery: '320',
+      ).toQueryParameters(),
+      {'filter': 'wind_speed', 'q': '320'},
+    );
+  });
+
   group('SensorHistoryQuery search', () {
     test('sends filter and q', () {
       expect(
