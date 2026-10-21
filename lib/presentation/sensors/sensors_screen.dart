@@ -187,6 +187,7 @@ class _SensorsViewState extends State<SensorsView> {
       SensorType.temperature => Icons.thermostat,
       SensorType.humidity => Icons.water_drop,
       SensorType.light => Icons.light_mode,
+      SensorType.windSpeed => Icons.air,
     };
   }
 
@@ -195,6 +196,7 @@ class _SensorsViewState extends State<SensorsView> {
       SensorType.temperature => ColorName.red,
       SensorType.humidity => ColorName.blue,
       SensorType.light => ColorName.orange,
+      SensorType.windSpeed => ColorName.teal,
     };
   }
 }

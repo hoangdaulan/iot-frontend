@@ -16,6 +16,7 @@ void main() {
       expect(parse('temperature'), SensorType.temperature);
       expect(parse('humidity'), SensorType.humidity);
       expect(parse('light'), SensorType.light);
+      expect(parse('wind_speed'), SensorType.windSpeed);
     });
 
     test('keeps the backend status as a free-form string', () {
@@ -148,6 +149,33 @@ void main() {
         throwsArgumentError,
       );
     });
+  });
+
+  test('wind_speed is a sensor type of the history and latest responses', () {
+    final entry = {
+      'id': 7,
+      'value': 320.0,
+      'unit': 'km/h',
+      'timestamp': '2026-10-21T10:00:00+07:00',
+    };
+    final history = SensorHistoryResponse.fromJson({
+      'data': {
+        'temperature': [],
+        'humidity': [],
+        'light': [],
+        'wind_speed': [entry],
+      },
+    });
+    expect(history.data[SensorType.windSpeed]?.single.value, 320.0);
+    final readings = history.toReadings();
+    expect(readings.single.type, SensorType.windSpeed);
+    expect(readings.single.unit, 'km/h');
+
+    final latest = LatestSensorDataResponse.fromJson({
+      'data': {'wind_speed': entry},
+    });
+    expect(latest.toReadings().single.type, SensorType.windSpeed);
+    expect(SensorType.windSpeed.label, 'Wind Speed');
   });
 
   test('LatestSensorDataResponse converts each type to one reading and reads the LED status', () {

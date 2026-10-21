@@ -55,6 +55,7 @@ class DashboardView extends StatelessWidget {
         final temperature = state.series.of(SensorType.temperature);
         final humidity = state.series.of(SensorType.humidity);
         final light = state.series.of(SensorType.light);
+        final wind = state.series.of(SensorType.windSpeed);
         final origin = state.windowStart ?? DateTime.now();
 
         return SingleChildScrollView(
@@ -90,6 +91,13 @@ class DashboardView extends StatelessWidget {
                     icon: Icons.light_mode,
                     color: ColorName.yellow,
                   ),
+                  SensorStatCard(
+                    title: 'Wind Speed',
+                    value: '${wind.latestValue}',
+                    unit: 'km/h',
+                    icon: Icons.air,
+                    color: ColorName.teal,
+                  ),
                 ],
               ),
 
@@ -124,6 +132,13 @@ class DashboardView extends StatelessWidget {
                     color: ColorName.yellow,
                     origin: origin,
                     dataPoints: trendSpots(light.readings, origin: origin),
+                  ),
+                  SensorChart(
+                    title: 'Wind Speed',
+                    unit: 'km/h',
+                    color: ColorName.teal,
+                    origin: origin,
+                    dataPoints: trendSpots(wind.readings, origin: origin),
                   ),
                 ],
               ),

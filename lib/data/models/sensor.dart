@@ -7,7 +7,9 @@ part 'sensor.g.dart';
 enum SensorType {
   temperature('Temperature', '°C'),
   humidity('Humidity', '%'),
-  light('Light', 'lux');
+  light('Light', 'lux'),
+  @JsonValue('wind_speed')
+  windSpeed('Wind Speed', 'km/h');
 
   final String label;
 
