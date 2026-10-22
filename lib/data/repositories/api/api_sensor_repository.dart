@@ -36,6 +36,15 @@ class ApiSensorRepository implements SensorRepository {
   });
 
   @override
+  Future<Result<int>> setWindThreshold(int threshold) => guardRequest(() async {
+    final res = await _dio.put<Map<String, dynamic>>(
+      '/api/settings/wind-threshold',
+      data: {'threshold': threshold},
+    );
+    return (res.data!['threshold'] as num).toInt();
+  });
+
+  @override
   Future<Result<WindWarningReport>> getWindWarnings({String? month}) => guardRequest(() async {
     final res = await _dio.get<Map<String, dynamic>>(
       '/api/reports/wind-warnings',

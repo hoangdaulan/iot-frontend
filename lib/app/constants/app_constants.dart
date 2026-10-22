@@ -9,7 +9,7 @@ class AppConstants {
   static const Duration chartWindow = Duration(hours: 24);
   static const Duration chartBucket = Duration(minutes: 5);
 
-  /// How often the dashboard polls the backend for the newest readings. The ESP32 publishes every
+  /// How often the dashboard and the wind report poll the backend for the newest readings. The ESP32 publishes every
   /// 2 seconds, so polling faster than that finds nothing new.
   static const Duration liveRefreshInterval = Duration(seconds: 2);
 

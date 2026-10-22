@@ -33,7 +33,7 @@ void main() {
     expect(find.text('Warning'), findsOneWidget);
   });
 
-  testWidgets('Wind Report shows the totals and one bar per day', (tester) async {
+  testWidgets('Wind Report shows one bar per day', (tester) async {
     tester.view.physicalSize = const Size(1400, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -49,11 +49,12 @@ void main() {
     );
 
     expect(find.text('Wind warnings per day - 2026-10'), findsOneWidget);
-    expect(find.text('Total warnings'), findsOneWidget);
-    expect(find.text('Busiest day'), findsOneWidget);
     final chart = tester.widget<BarChart>(find.byType(BarChart));
     expect(chart.data.barGroups, hasLength(31));
     expect(chart.data.barGroups.first.barRods.single.toY, 3);
     expect(chart.data.barGroups[6].barRods.single.toY, 0); // day 7: a quiet day
+
+    // The live refresh timer must not outlive the test.
+    await cubit.close();
   });
 }

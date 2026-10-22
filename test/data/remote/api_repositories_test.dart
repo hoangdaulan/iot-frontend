@@ -156,6 +156,28 @@ void main() {
       expect(report.days.last.day, 2);
     });
 
+    test('setWindThreshold puts the threshold and returns the saved value', () async {
+      final backend = _FakeBackend(200, {'threshold': 250});
+
+      final result = await ApiSensorRepository(_dio(backend)).setWindThreshold(250);
+
+      expect(backend.request?.method, 'PUT');
+      expect(backend.request?.path, '/api/settings/wind-threshold');
+      expect(backend.requestBody, {'threshold': 250});
+      expect(result.dataOrNull, 250);
+    });
+
+    test('a refused threshold carries the backend message', () async {
+      final result = await ApiSensorRepository(
+        _dio(
+          _FakeBackend(400, {'message': 'Invalid threshold: must be a whole number from 0 to 500'}),
+        ),
+      ).setWindThreshold(900);
+
+      expect(result, isA<Failure<int>>());
+      expect((result as Failure<int>).message, startsWith('Invalid threshold'));
+    });
+
     test('without a month the query is empty', () async {
       final backend = _FakeBackend(200, {'month': '2026-10', 'days': []});
       await ApiSensorRepository(_dio(backend)).getWindWarnings();

@@ -18,4 +18,9 @@ abstract interface class SensorRepository {
   /// `GET /api/reports/wind-warnings`: the warnings of each day of [month] (`yyyy-MM`; the
   /// current month when null).
   Future<Result<WindWarningReport>> getWindWarnings({String? month});
+
+  /// `PUT /api/settings/wind-threshold`: sets the wind speed (a whole number of km/h from 0 to
+  /// 500) from which the warning LED lights up and a reading counts as a warning. Returns the
+  /// saved value.
+  Future<Result<int>> setWindThreshold(int threshold);
 }

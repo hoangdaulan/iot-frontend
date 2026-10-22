@@ -96,6 +96,21 @@ class FakeSensorRepository implements SensorRepository {
   Result<WindWarningReport>? windWarnings;
   var windWarningCalls = 0;
 
+  /// The threshold the fake backend uses; [setWindThreshold] changes it.
+  var windThreshold = 300;
+  final savedThresholds = <int>[];
+
+  /// A failure to answer [setWindThreshold] with, instead of saving.
+  Failure<int>? thresholdFailure;
+
+  @override
+  Future<Result<int>> setWindThreshold(int threshold) async {
+    if (thresholdFailure != null) return thresholdFailure!;
+    savedThresholds.add(threshold);
+    windThreshold = threshold;
+    return Success(threshold);
+  }
+
   @override
   Future<Result<WindWarningReport>> getWindWarnings({String? month}) async {
     windWarningCalls++;
@@ -110,6 +125,7 @@ class FakeSensorRepository implements SensorRepository {
     return Success(
       WindWarningReport(
         month: month ?? '2026-10',
+        threshold: windThreshold.toDouble(),
         total: days.fold(0, (sum, d) => sum + d.count),
         days: days,
       ),
